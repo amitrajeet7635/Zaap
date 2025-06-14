@@ -1,7 +1,24 @@
-# Zaap
-No cash. No cards. Just Zapp. Built on Web3. Crafted for your tomorrow.
+<div align="center">
+  <h3><strong>Zaap</strong></h3>
+  No cash. No cards. Just Zapp. Built on Web3. Crafted for your tomorrow.
+</div>
 
-  
+<br/>
+
+<p align="center">
+  <a href="https://github.com/amanna13/zaap/commits">
+    <img src="https://img.shields.io/github/last-commit/amanna13/zaap?label=Last%20Commit&logo=git" alt="Last Commit" />
+  </a>
+  <img src="https://img.shields.io/badge/Hackathon-purple" alt="Hackathon" />
+  <img src="https://img.shields.io/badge/status-In%20Development-orange" alt="Status" />
+  <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/stability-Prototype-lightgrey" alt="Stability" />
+  <br/>
+  <img src = "https://img.shields.io/badge/Android-green?logo=android&logoColor=white" />
+  <img src="https://img.shields.io/badge/-Blockchain-121212?logo=blockchaindotcom&logoColor=white" alt="Blockchain" />
+</p>
+
+
 
 <table align="left">
   <tr>
