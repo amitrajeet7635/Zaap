@@ -63,4 +63,5 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.56.2")
     ksp("com.google.dagger:hilt-android-compiler:2.56.2")
     implementation("androidx.navigation:navigation-compose:$nav_version")
+    implementation ("androidx.constraintlayout:constraintlayout-compose:1.1.1")
 }
