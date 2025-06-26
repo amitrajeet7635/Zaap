@@ -169,7 +169,6 @@ body {
 
 /* Custom range slider styles */
 input[type="range"] {
-  -webkit-appearance: none;
   background: transparent;
 }
 

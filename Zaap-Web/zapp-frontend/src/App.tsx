@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import LandingPage from './pages/LandingPage'
 import ParentalLogin from './pages/ParentalLogin'
 import ParentalDashboard from './pages/ParentalDashboard'

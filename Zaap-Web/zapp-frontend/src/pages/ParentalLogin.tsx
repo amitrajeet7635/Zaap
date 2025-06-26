@@ -9,7 +9,7 @@ interface ParentalLoginProps {
 }
 
 export default function ParentalLogin({ onNavigateBack, onNavigateToDashboard }: ParentalLoginProps) {
-  const [isConnecting, setIsConnecting] = useState(false)
+  const [isConnecting] = useState(false)
   // const { loggedIn, userInfo, login } = 
 
   // const handleWeb3AuthConnect = async () => {
