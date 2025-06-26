@@ -2,28 +2,31 @@ import { useState } from 'react'
 import Header from '../components/Header'
 import Card from '../components/Card'
 import Button from '../components/Button'
-import {useMetaMask} from "../hooks/useMetamask";
 
 interface ParentalLoginProps {
   onNavigateBack: () => void
+  onNavigateToDashboard: () => void
 }
 
-export default function ParentalLogin({ onNavigateBack }: ParentalLoginProps) {
+export default function ParentalLogin({ onNavigateBack, onNavigateToDashboard }: ParentalLoginProps) {
   const [isConnecting, setIsConnecting] = useState(false)
+  // const { loggedIn, userInfo, login } = 
 
- const { connect } = useMetaMask();
-
-const handleMetaMaskConnect = async () => {
-  setIsConnecting(true);
-  const wallet = await connect();
-  setIsConnecting(false);
-
-  if (wallet) {
-    alert(`Connected to MetaMask: ${wallet}`);
-    // Optionally: navigate to /dashboard or call an Appwrite API
-  }
-};
-
+  // const handleWeb3AuthConnect = async () => {
+  //   setIsConnecting(true)
+  //   try {
+  //     await login()
+  //     console.log('Successfully connected to Web3Auth')
+  //     // Navigate to dashboard after successful login
+  //     setTimeout(() => {
+  //       onNavigateToDashboard()
+  //     }, 1000)
+  //   } catch (error) {
+  //     console.error('Failed to connect:', error)
+  //   } finally {
+  //     setIsConnecting(false)
+  //   }
+  // }
 
   return (
     <div className="min-h-screen bg-black font-inter">
@@ -45,57 +48,93 @@ const handleMetaMaskConnect = async () => {
               </svg>
             </div>
             <h2 className="text-3xl font-bold gradient-text mb-3">Parental Dashboard</h2>
-            <p className="text-gray-300 text-base leading-relaxed">Secure access to your family's financial dashboard using MetaMask</p>
+            <p className="text-gray-300 text-base leading-relaxed">
+              
+                "Welcome back, 'Parent'! Access your family's financial dashboard` :
+                "Secure access to your family's financial dashboard using Web3Auth"
+            </p>
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-gradient-to-br from-yellow-400/10 to-yellow-600/20 border border-yellow-400/30 rounded-2xl p-6 hover:border-yellow-400/50 transition-all duration-300">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center mr-3">
-                  <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                  </svg>
+           
+            <div className="space-y-6">
+              <div className="bg-gradient-to-br from-green-400/10 to-green-600/20 border border-green-400/30 rounded-2xl p-6">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center mr-3">
+                    <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                  </div>
+                  <span className="text-lg font-bold text-green-400">Connected Successfully</span>
                 </div>
-                <span className="text-lg font-bold text-yellow-400">MetaMask Wallet</span>
+                <p className="text-gray-300 leading-relaxed text-sm">
+                  You are now connected and can access your parental dashboard
+                </p>
               </div>
-              <p className="text-gray-300 leading-relaxed text-sm">
-                Connect securely using MetaMask Delegation Toolkit for complete control over your family's digital spending
-              </p>
-            </div>
-
-            <Button 
-              size="lg" 
-              className="w-full text-lg py-5"
-              onClick={handleMetaMaskConnect}
-              disabled={isConnecting}
-            >
-              {isConnecting ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-black border-t-transparent mr-3"></div>
-                  Connecting to MetaMask...
-                </div>
-              ) : (
+              
+              <Button 
+                size="lg" 
+                className="w-full text-lg py-5 bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700"
+                onClick={onNavigateToDashboard}
+              >
                 <div className="flex items-center justify-center">
                   <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
                   </svg>
-                  Connect MetaMask Wallet
+                  Access Dashboard
                 </div>
-              )}
-            </Button>
+              </Button>
+            </div>
+         
+            <div className="space-y-6">
+              <div className="bg-gradient-to-br from-yellow-400/10 to-yellow-600/20 border border-yellow-400/30 rounded-2xl p-6 hover:border-yellow-400/50 transition-all duration-300">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center mr-3">
+                    <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                  </div>
+                  <span className="text-lg font-bold text-yellow-400">Web3Auth Login</span>
+                </div>
+                <p className="text-gray-300 leading-relaxed text-sm">
+                  Connect securely using social logins or wallet providers for complete control over your family's digital spending
+                </p>
+              </div>
 
-            <div className="text-center text-gray-400 space-y-2">
-              <p className="text-sm">Don't have MetaMask installed?</p>
+              <Button 
+                size="lg" 
+                className="w-full text-lg py-5"
+                disabled={isConnecting}
+              >
+                {isConnecting ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-black border-t-transparent mr-3"></div>
+                    Connecting to Web3Auth...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    Connect with Web3Auth
+                  </div>
+                )}
+              </Button>
+            </div>
+          
+
+      
+            <div className="text-center text-gray-400 space-y-2 mt-6">
+              <p className="text-sm">Supports Google, Discord, GitHub, and more</p>
               <a 
-                href="https://metamask.io" 
+                href="https://web3auth.io" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-flex items-center text-yellow-400 hover:text-yellow-300 font-medium transition-colors duration-300 text-sm"
               >
-                Download MetaMask →
+                Learn more about Web3Auth →
               </a>
             </div>
-          </div>
+       
         </Card>
 
         {/* Security Features */}
@@ -109,7 +148,7 @@ const handleMetaMaskConnect = async () => {
               </div>
               <div>
                 <h4 className="font-bold text-yellow-400 text-base">Bank-Level Security</h4>
-                <p className="text-gray-300 text-sm">Your private keys never leave your device</p>
+                <p className="text-gray-300 text-sm">MPC technology ensures your keys are never exposed</p>
               </div>
             </div>
           </Card>
@@ -122,8 +161,8 @@ const handleMetaMaskConnect = async () => {
                 </svg>
               </div>
               <div>
-                <h4 className="font-bold text-yellow-400 text-base">Instant Access</h4>
-                <p className="text-gray-300 text-sm">No complex passwords or lengthy forms</p>
+                <h4 className="font-bold text-yellow-400 text-base">Social Login</h4>
+                <p className="text-gray-300 text-sm">Use familiar social accounts for easy access</p>
               </div>
             </div>
           </Card>
@@ -136,8 +175,8 @@ const handleMetaMaskConnect = async () => {
                 </svg>
               </div>
               <div>
-                <h4 className="font-bold text-yellow-400 text-base">Web3 Native</h4>
-                <p className="text-gray-300 text-sm">Built for the future of digital finance</p>
+                <h4 className="font-bold text-yellow-400 text-base">Non-Custodial</h4>
+                <p className="text-gray-300 text-sm">You maintain full control of your wallet</p>
               </div>
             </div>
           </Card>
