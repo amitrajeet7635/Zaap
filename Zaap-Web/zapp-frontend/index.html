@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link href="/src/index.css" rel="stylesheet">
+    <title>Zapp</title>
+    <script>
+      // Global polyfills for Web3Auth
+      if (typeof global === 'undefined') {
+        var global = globalThis;
+      }
+      
+      // Additional process polyfills
+      if (typeof process === 'undefined') {
+        window.process = {
+          env: {},
+          nextTick: function(callback) {
+            setTimeout(callback, 0);
+          },
+          version: '',
+          platform: 'browser'
+        };
+      } else if (!process.nextTick) {
+        process.nextTick = function(callback) {
+          setTimeout(callback, 0);
+        };
+      }
+    </script>
+    <!-- Import Buffer polyfill before other scripts -->
+    <script type="module">
+      import { Buffer } from 'buffer';
+      window.Buffer = Buffer;
+      globalThis.Buffer = Buffer;
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
