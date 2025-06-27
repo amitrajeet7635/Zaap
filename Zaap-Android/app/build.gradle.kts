@@ -64,4 +64,5 @@ dependencies {
     ksp("com.google.dagger:hilt-android-compiler:2.56.2")
     implementation("androidx.navigation:navigation-compose:$nav_version")
     implementation ("androidx.constraintlayout:constraintlayout-compose:1.1.1")
+    implementation ("com.airbnb.android:lottie-compose:6.6.6")
 }

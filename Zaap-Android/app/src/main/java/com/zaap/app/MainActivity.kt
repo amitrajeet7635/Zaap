@@ -46,8 +46,8 @@ private fun StatusBarProtection(
         val calculatedHeight = heightProvider()
         val gradient = Brush.verticalGradient(
             colors = listOf(
-                color.copy(alpha = .9f),
-                color.copy(alpha = .5f),
+                color.copy(alpha = 0.8f),
+                color.copy(alpha = .3f),
                 Color.Transparent
             ),
             startY = 0f,

@@ -13,7 +13,10 @@ val Fredoka = FontFamily(
     Font(R.font.fredoka_light, FontWeight.Light),
     Font(R.font.fredoka_medium, FontWeight.Medium),
     Font(R.font.fredoka_semibold, FontWeight.SemiBold),
-    Font(R.font.fredoka_semiexpanded_bold)
+)
+
+val fredokaSemiExpanded = FontFamily(
+    Font(R.font.fredoka_semiexpanded_bold, weight = FontWeight.Bold)
 )
 
 
