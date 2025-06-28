@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalDensity
+import androidx.navigation.compose.rememberNavController
+import com.zaap.app.navigation.Navigation
 
 
 class MainActivity : ComponentActivity() {
@@ -26,9 +28,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val navController = rememberNavController()
             ZaapTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) {
-                    HomePage(modifier = Modifier.padding(it))
+                    Navigation(modifier = Modifier.padding(it), navController)
                 }
                 StatusBarProtection()
             }

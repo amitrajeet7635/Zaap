@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -118,7 +117,7 @@ fun TopBar(modifier: Modifier = Modifier, statusBarHeightDp: Dp) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(statusBarHeightDp + 50.dp)
+            .height(statusBarHeightDp + 54.dp)
             .padding()
             .padding(20.dp)
     ) {
@@ -420,11 +419,17 @@ fun AccountControlsSection(modifier: Modifier = Modifier.padding(vertical = 5.dp
         Row(
             modifier = Modifier
                 .padding(20.dp)
-                .fillMaxWidth().defaultMinSize(minHeight = 60.dp),
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 60.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null){}) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {}) {
                 Image(
                     painter = painterResource(R.drawable.family),
                     contentDescription = "Zaap Circle",
@@ -439,7 +444,12 @@ fun AccountControlsSection(modifier: Modifier = Modifier.padding(vertical = 5.dp
                 )
             }
             VerticalDivider(modifier = Modifier.height(20.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null){}) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {}) {
                 Image(
                     painter = painterResource(R.drawable.income),
                     contentDescription = "Zaap Spend",
@@ -485,7 +495,7 @@ fun RewardsCard(modifier: Modifier = Modifier.padding(vertical = 5.dp)) {
 @Composable
 fun DetailedSection(modifier: Modifier = Modifier) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .padding(vertical = 10.dp)
             .fillMaxWidth()
     ) {
@@ -495,7 +505,7 @@ fun DetailedSection(modifier: Modifier = Modifier) {
             .clickable {}
             .padding(vertical = 12.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -513,7 +523,7 @@ fun DetailedSection(modifier: Modifier = Modifier) {
             .clickable {}
             .padding(vertical = 12.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -530,7 +540,7 @@ fun DetailedSection(modifier: Modifier = Modifier) {
             .clickable {}
             .padding(vertical = 12.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
