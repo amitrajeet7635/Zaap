@@ -1,8 +1,10 @@
 package com.zaap.app.presentation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,6 +76,7 @@ fun HomePage(modifier: Modifier = Modifier) {
         item {
             Column(
                 Modifier
+                    .padding(bottom = 5.dp)
                     .clip(RoundedCornerShape(bottomEnd = 40.dp, bottomStart = 40.dp))
                     .background(Color(0xFF9cacff))
             ) {
@@ -82,6 +87,10 @@ fun HomePage(modifier: Modifier = Modifier) {
 
         item {
             QuickActions()
+        }
+
+        item {
+            AccountControlsSection()
         }
 
         item {
@@ -304,11 +313,10 @@ fun Card(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun QuickActions(modifier: Modifier = Modifier.padding(vertical = 10.dp)) {
+fun QuickActions(modifier: Modifier = Modifier.padding(vertical = 5.dp)) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(118.dp)
             .clip(RoundedCornerShape(40.dp))
             .background(Color(0xFFffcc90))
             .padding(12.dp)
@@ -316,6 +324,7 @@ fun QuickActions(modifier: Modifier = Modifier.padding(vertical = 10.dp)) {
 
         Row(
             horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 5.dp)
@@ -346,7 +355,7 @@ fun QuickActions(modifier: Modifier = Modifier.padding(vertical = 10.dp)) {
 
             VerticalDivider(
                 thickness = 1.5.dp, modifier = Modifier
-                    .fillMaxHeight()
+                    .height(80.dp)
                     .padding(vertical = 5.dp)
             )
 
@@ -370,7 +379,7 @@ fun QuickActions(modifier: Modifier = Modifier.padding(vertical = 10.dp)) {
 
             VerticalDivider(
                 thickness = 1.5.dp, modifier = Modifier
-                    .fillMaxHeight()
+                    .height(80.dp)
                     .padding(vertical = 5.dp)
             )
 
@@ -397,67 +406,63 @@ fun QuickActions(modifier: Modifier = Modifier.padding(vertical = 10.dp)) {
             }
 
         }
-
-//            Row(
-//                horizontalArrangement = Arrangement.SpaceEvenly,
-//                modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp)
-//            ) {
-//
-//                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-//                    ElevatedButton(
-//                        onClick = {},
-//                        shape = ButtonDefaults.elevatedShape,
-//                        modifier = Modifier.size(60.dp),
-//                        contentPadding = PaddingValues(0.dp)
-//                    ) {
-//                        Icon(
-//                            painter = painterResource(R.drawable.link),
-//                            contentDescription = "Linked Accounts",
-//                            tint = Color.White
-//                        )
-//                    }
-//
-//                    Text(
-//                        "Linked Accounts",
-//                        color = Color.Black,
-//                        fontSize = 14.sp,
-//                        fontWeight = FontWeight.Medium
-//                    )
-//                }
-//
-//                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-//                    ElevatedButton(
-//                        onClick = {},
-//                        shape = ButtonDefaults.elevatedShape,
-//                        modifier = Modifier.size(60.dp),
-//                        contentPadding = PaddingValues(0.dp)
-//                    ) {
-//                        Icon(
-//                            painter = painterResource(R.drawable.heart_handshake),
-//                            contentDescription = "Referrals",
-//                            tint = Color.White
-//                        )
-//                    }
-//                    Text(
-//                        "Refer & Earn",
-//                        color = Color.Black,
-//                        fontSize = 14.sp,
-//                        fontWeight = FontWeight.Medium
-//                    )
-//                }
-//
-//
-//            }
     }
 }
 
+@Composable
+fun AccountControlsSection(modifier: Modifier = Modifier.padding(vertical = 5.dp)) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(40.dp))
+            .background(Color(0xFFE76C53))
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(20.dp)
+                .fillMaxWidth().defaultMinSize(minHeight = 60.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null){}) {
+                Image(
+                    painter = painterResource(R.drawable.family),
+                    contentDescription = "Zaap Circle",
+                    modifier = Modifier.size(40.dp)
+                )
+                Spacer(Modifier.width(7.dp))
+                Text(
+                    "Zaap\nCircleLink",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black
+                )
+            }
+            VerticalDivider(modifier = Modifier.height(20.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null){}) {
+                Image(
+                    painter = painterResource(R.drawable.income),
+                    contentDescription = "Zaap Spend",
+                    modifier = Modifier.size(40.dp)
+                )
+                Spacer(Modifier.width(7.dp))
+                Text(
+                    "Zaap\nSafeSpend",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black
+                )
+            }
+        }
+    }
+}
 
 @Composable
-fun RewardsCard(modifier: Modifier = Modifier) {
+fun RewardsCard(modifier: Modifier = Modifier.padding(vertical = 5.dp)) {
     ElevatedCard(
         shape = RoundedCornerShape(40.dp),
         colors = CardDefaults.elevatedCardColors(Color(0xFF80d8b8)),
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
 
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
