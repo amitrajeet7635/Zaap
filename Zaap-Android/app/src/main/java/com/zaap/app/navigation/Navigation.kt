@@ -13,7 +13,9 @@ import com.zaap.app.presentation.features.TransferMoney
 fun Navigation(modifier: Modifier = Modifier, navHostController: NavHostController) {
     NavHost(navController = navHostController, startDestination = "Home") {
         composable("Home") {
-            HomePage(modifier = modifier)
+            HomePage( modifier = modifier,
+                navHostController
+            )
         }
         composable("TransferMoney") {
             TransferMoney()

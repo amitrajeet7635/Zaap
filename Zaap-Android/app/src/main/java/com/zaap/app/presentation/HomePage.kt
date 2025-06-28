@@ -57,6 +57,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import androidx.navigation.NavOptions
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
@@ -66,7 +68,7 @@ import com.zaap.app.ui.theme.MatteBlack
 import com.zaap.app.ui.theme.fredokaSemiExpanded
 
 @Composable
-fun HomePage(modifier: Modifier = Modifier) {
+fun HomePage(modifier: Modifier = Modifier, navHostController: NavHostController) {
     val statusBarHeightDp = with(LocalDensity.current) {
         WindowInsets.statusBars.getTop(this).toDp()
     }
@@ -85,7 +87,7 @@ fun HomePage(modifier: Modifier = Modifier) {
         }
 
         item {
-            QuickActions()
+            QuickActions(Modifier.padding(vertical = 5.dp), navHostController)
         }
 
         item {
@@ -312,7 +314,7 @@ fun Card(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun QuickActions(modifier: Modifier = Modifier.padding(vertical = 5.dp)) {
+fun QuickActions(modifier: Modifier = Modifier, navHostController: NavHostController) {
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -385,7 +387,7 @@ fun QuickActions(modifier: Modifier = Modifier.padding(vertical = 5.dp)) {
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 ElevatedButton(
-                    onClick = {},
+                    onClick = {navHostController.navigate("TransferMoney")},
                     shape = ButtonDefaults.elevatedShape,
                     modifier = Modifier.size(60.dp),
                     contentPadding = PaddingValues(0.dp)
