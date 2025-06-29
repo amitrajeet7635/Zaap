@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.zaap.app.presentation.HomePage
 import com.zaap.app.presentation.features.ScanAndPay
+import com.zaap.app.presentation.features.ScanPayCheckout
 import com.zaap.app.presentation.features.TransferMoney
 
 @Composable
@@ -21,7 +22,10 @@ fun Navigation(modifier: Modifier = Modifier, navHostController: NavHostControll
             TransferMoney()
         }
         composable("ScanAndPay") {
-            ScanAndPay()
+            ScanAndPay(navHostController = navHostController)
+        }
+        composable("ScanPayCheckout") {
+            ScanPayCheckout(navHostController = navHostController)
         }
     }
 }

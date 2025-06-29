@@ -27,16 +27,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigation.NavHostController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.zaap.app.presentation.modules.ScanAndPayScanner
+import com.zaap.app.presentation.viewmodel.ScanDataViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun ScanAndPay(modifier: Modifier = Modifier) {
+fun ScanAndPay(modifier: Modifier = Modifier, navHostController: NavHostController ,scanDataViewModel: ScanDataViewModel = hiltViewModel()) {
 
     var scannedResult by remember { mutableStateOf<String?>(null) }
     val permissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
@@ -73,75 +76,76 @@ fun ScanAndPay(modifier: Modifier = Modifier) {
                 contentAlignment = Alignment.Center
             ) {
                 ScanAndPayScanner { result ->
-                    scannedResult = result
+                    scanDataViewModel.setScannedData(result)
+                    navHostController.navigate("ScanPayCheckout")
                 }
 
-                scannedResult?.let { result ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth(0.8f) // 80% width of its parent
-                            .padding(16.dp)
-                            .align(Alignment.BottomCenter), // Position at the bottom center
-                        shape = RoundedCornerShape(12.dp), // Rounded corners
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp), // Shadow
-                        colors = CardDefaults.cardColors(containerColor = Color.White) // White background for the card
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .padding(20.dp)
-                                .fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "Scanned QR Code:",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.DarkGray
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = result,
-                                fontSize = 16.sp,
-                                color = Color.Black,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Processing payment...", // Placeholder for actual payment logic
-                                fontSize = 14.sp, color = Color.Gray
-                            )
-                        }
-                    }
-                }
+//                scannedResult?.let { result ->
+//                    Card(
+//                        modifier = Modifier
+//                            .fillMaxWidth(0.8f) // 80% width of its parent
+//                            .padding(16.dp)
+//                            .align(Alignment.BottomCenter), // Position at the bottom center
+//                        shape = RoundedCornerShape(12.dp), // Rounded corners
+//                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp), // Shadow
+//                        colors = CardDefaults.cardColors(containerColor = Color.White) // White background for the card
+//                    ) {
+//                        Column(
+//                            modifier = Modifier
+//                                .padding(20.dp)
+//                                .fillMaxWidth(),
+//                            horizontalAlignment = Alignment.CenterHorizontally
+//                        ) {
+//                            Text(
+//                                text = "Scanned QR Code:",
+//                                fontSize = 18.sp,
+//                                fontWeight = FontWeight.Bold,
+//                                color = Color.DarkGray
+//                            )
+//                            Spacer(modifier = Modifier.height(8.dp))
+//                            Text(
+//                                text = result,
+//                                fontSize = 16.sp,
+//                                color = Color.Black,
+//                                textAlign = TextAlign.Center
+//                            )
+//                            Spacer(modifier = Modifier.height(8.dp))
+//                            Text(
+//                                text = "Processing payment...", // Placeholder for actual payment logic
+//                                fontSize = 14.sp, color = Color.Gray
+//                            )
+//                        }
+//                    }
+//                }
             }
         }
     }
 }
 
 
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-fun ScanAndPay(onCodeScanned: (String) -> Unit) {
-    val permissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-
-    val options = GmsBarcodeScannerOptions.Builder().setBarcodeFormats(
-            Barcode.FORMAT_QR_CODE,
-        ).enableAutoZoom().build()
-
-
-
-    if (permissionState.status.isGranted) {
-
-    } else {
-        Box(
-            Modifier.fillMaxSize(), contentAlignment = Alignment.Center
-        ) {
-            Text("Camera permission required", color = Color.Red)
-        }
-    }
-}
+//@OptIn(ExperimentalPermissionsApi::class)
+//@Composable
+//fun ScanAndPay(onCodeScanned: (String) -> Unit) {
+//    val permissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
+//    val context = LocalContext.current
+//    val lifecycleOwner = LocalLifecycleOwner.current
+//
+//    val options = GmsBarcodeScannerOptions.Builder().setBarcodeFormats(
+//            Barcode.FORMAT_QR_CODE,
+//        ).enableAutoZoom().build()
+//
+//
+//
+//    if (permissionState.status.isGranted) {
+//
+//    } else {
+//        Box(
+//            Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+//        ) {
+//            Text("Camera permission required", color = Color.Red)
+//        }
+//    }
+//}
 
 
 //@Composable
