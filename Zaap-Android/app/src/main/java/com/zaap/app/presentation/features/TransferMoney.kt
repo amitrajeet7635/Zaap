@@ -92,8 +92,6 @@ fun TransferMoney(modifier: Modifier = Modifier) {
                 }
             }
         }
-
-
     }
 }
 

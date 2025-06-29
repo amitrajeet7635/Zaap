@@ -334,7 +334,7 @@ fun QuickActions(modifier: Modifier = Modifier, navHostController: NavHostContro
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 ElevatedButton(
                     colors = ButtonDefaults.elevatedButtonColors(MatteBlack),
-                    onClick = {},
+                    onClick = {navHostController.navigate("ScanAndPay")},
                     shape = ButtonDefaults.elevatedShape,
                     modifier = Modifier.size(60.dp),
                     contentPadding = PaddingValues(0.dp)
