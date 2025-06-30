@@ -73,7 +73,11 @@ export default function ParentalLogin({ onAuthenticated, onNavigateBack }: Paren
       console.log('Signed Delegation:', signedDelegation);
       setStatus(`Delegation successful for ${address}`);
 
-      // Redirect using navigation prop
+      // Mock Circle wallet creation after delegation
+      setStatus('Creating Circle Wallet...');
+      await new Promise(res => setTimeout(res, 1200)); // Simulate async wallet creation
+      setStatus('Circle Wallet created! Redirecting...');
+
       setTimeout(() => {
         onAuthenticated();
       }, 1500);
