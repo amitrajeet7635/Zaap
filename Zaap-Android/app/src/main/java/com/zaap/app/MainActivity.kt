@@ -19,16 +19,21 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalDensity
+import androidx.navigation.compose.rememberNavController
+import com.zaap.app.navigation.Navigation
+import dagger.hilt.android.AndroidEntryPoint
 
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val navController = rememberNavController()
             ZaapTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) {
-                    HomePage(modifier = Modifier.padding(it))
+                    Navigation(modifier = Modifier.padding(it), navController)
                 }
                 StatusBarProtection()
             }
@@ -46,8 +51,8 @@ private fun StatusBarProtection(
         val calculatedHeight = heightProvider()
         val gradient = Brush.verticalGradient(
             colors = listOf(
-                color.copy(alpha = .9f),
-                color.copy(alpha = .5f),
+                color.copy(alpha = 0.8f),
+                color.copy(alpha = .3f),
                 Color.Transparent
             ),
             startY = 0f,

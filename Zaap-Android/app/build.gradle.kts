@@ -42,6 +42,8 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.camera.mlkit.vision)
+    implementation(libs.play.services.mlkit.barcode.scanning)
     val nav_version = "2.9.0"
 
     implementation(libs.androidx.core.ktx)
@@ -61,7 +63,19 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("com.google.dagger:hilt-android:2.56.2")
+    implementation ("androidx.hilt:hilt-navigation-compose:1.2.0")
     ksp("com.google.dagger:hilt-android-compiler:2.56.2")
     implementation("androidx.navigation:navigation-compose:$nav_version")
     implementation ("androidx.constraintlayout:constraintlayout-compose:1.1.1")
+    implementation ("com.airbnb.android:lottie-compose:6.6.6")
+
+    implementation("androidx.camera:camera-core:1.4.2")
+    implementation ("androidx.camera:camera-camera2:1.4.2")
+    implementation ("androidx.camera:camera-lifecycle:1.4.2")
+    implementation ("androidx.camera:camera-view:1.4.2")
+    implementation ("androidx.camera:camera-extensions:1.4.2")
+    implementation ("com.google.android.gms:play-services-code-scanner:16.1.0")
+
+    implementation("com.google.accompanist:accompanist-permissions:0.37.3")
+
 }
