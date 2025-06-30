@@ -3,8 +3,6 @@ import { BrowserProvider, Contract, formatUnits, parseUnits } from 'ethers';
 import Header from '../components/Header'
 import Card from '../components/Card'
 import Button from '../components/Button'
-import USDCKit from '@circle-fin/usdckit';
-
 
 interface Child {
   id: string
@@ -33,8 +31,8 @@ interface ParentalDashboardProps {
 }
 
 const CIRCLE_WALLET_MANAGER_ADDRESS = '0x76E74a8241E4c17989656Cd46949A7486e6bAB95'; // TODO: Replace with actual deployed address
-// Update to Circle Sepolia USDC address (official Circle testnet USDC)
-const USDC_ADDRESS = '0x65aFADD39029741B3b8f0756952C74678c9cEC93'; 
+// Update to Ethereum Sepolia USDC address
+const USDC_ADDRESS = '0x6fC21072379d0a5F7e2C1e4dF2bA5bFfA1eA1e1C'; 
 const CIRCLE_WALLET_ABI = [
   "function getChildBalance(address child) view returns (uint256)",
   "function allocateToChild(address child, uint256 amount)",
@@ -43,8 +41,6 @@ const USDC_ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function approve(address spender, uint256 amount)",
 ];
-
- const CIRCLE_API_KEY = 'YOUR_CIRCLE_SANDBOX_API_KEY';
 
 export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'children' | 'transactions' | 'settings'>('overview')
@@ -111,7 +107,6 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
   const [allocAmount, setAllocAmount] = useState<string>('');
   const [allocChild, setAllocChild] = useState<string>('');
   const [txStatus, setTxStatus] = useState<string>('');
-  const [circleWallet, setCircleWallet] = useState<string | null>(null);
 
   const updateChildLimit = (childId: string, type: 'daily' | 'weekly', amount: number) => {
     setChildren(prev => prev.map(child => 
@@ -168,25 +163,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     setWalletAddress(accounts[0]);
   };
 
-  // Create Circle wallet after delegation (mocked for now)
-  
-  const createCircleWallet = async () => {
-    try {
-      setTxStatus('Creating wallet...');
-      const usdcKit = USDCKit({ apiKey: CIRCLE_API_KEY }); // ✅ Initialize kit
-      const wallet = await usdcKit.wallets.create(); // ✅ Create wallet
-
-      console.log('Created wallet:', wallet);
-      setCircleWallet(wallet.walletId); // or `wallet.address` if needed
-      setTxStatus('Wallet created successfully!');
-    } catch (error) {
-      console.error('Circle wallet creation failed:', error);
-      setTxStatus('Error creating wallet.');
-    }
-  };
-
-
-  // Fetch USDC balance (Circle Sepolia USDC)
+  // Fetch USDC balance
   useEffect(() => {
     if (!walletAddress) return;
     const fetchBalance = async () => {
@@ -197,11 +174,6 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     };
     fetchBalance();
   }, [walletAddress]);
-
-  // Call createCircleWallet after successful delegation (mocked: call after connectWallet for demo)
- useEffect(() => {
-    createCircleWallet();
-  }, []);
 
   // Allocate USDC to child
   const allocateUSDC = async () => {
@@ -604,7 +576,6 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
               <div className="text-right">
                 <p className="text-sm text-gray-400">Wallet: {walletAddress.slice(0,6)}...{walletAddress.slice(-4)}</p>
                 <p className="text-sm text-yellow-400">USDC: {usdcBalance}</p>
-                {circleWallet && <p className="text-sm text-blue-400">Circle Wallet: {circleWallet.slice(0,6)}...{circleWallet.slice(-4)}</p>}
               </div>
             )}
           </div>
