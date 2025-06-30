@@ -1,11 +1,11 @@
 import { toMetaMaskSmartAccount, Implementation } from '@metamask/delegation-toolkit';
 import { createWalletClient, custom } from 'viem';
-import { lineaSepolia } from 'viem/chains';
+import { sepolia } from 'viem/chains';
 import { publicClient } from '../lib/viemClients';
 
 export async function getMetaMaskSmartAccount(address: `0x${string}`) {
   const walletClient = createWalletClient({
-    chain: lineaSepolia,
+    chain: sepolia,
     transport: custom(window.ethereum),
     account: address,
   });

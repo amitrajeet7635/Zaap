@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createDelegation } from '@metamask/delegation-toolkit';
-import { switchOrAddLineaChain } from '../utils/switchOrAddLineaChain';
+import { switchOrAddSepoliaChain } from '../utils/switchOrAddEthChain';
 import { getMetaMaskSmartAccount } from '../utils/getMetamaskSmartAccounts';
 
 import Header from '../components/Header';
@@ -32,15 +32,15 @@ export default function ParentalLogin({ onAuthenticated, onNavigateBack }: Paren
     }
     try {
       setLoading(true);
-      setStatus('Switching to Linea Sepolia...');
+      setStatus('Switching to Ethereum Sepolia...');
 
-      // Switch to Linea Sepolia
-      await switchOrAddLineaChain();
+      // Switch to Ethereum Sepolia
+      await switchOrAddSepoliaChain();
 
       // Check if on correct network
       const chainId = await ethereum.request({ method: 'eth_chainId' });
-      if (chainId !== '0xe705') {
-        setStatus('Error: Please switch to Linea Sepolia network in MetaMask.');
+      if (chainId !== '0xaa36a7') {
+        setStatus('Error: Please switch to Ethereum Sepolia network in MetaMask.');
         setLoading(false);
         return;
       }
