@@ -1,42 +1,26 @@
-import { useState } from 'react';
-import LandingPage from './pages/LandingPage';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import ParentalLogin from './pages/ParentalLogin';
 import ParentalDashboard from './pages/ParentalDashboard';
 
-type PageType = 'landing' | 'parentalLogin' | 'parentalDashboard';
-
-function App() {
-  const [currentPage, setCurrentPage] = useState<PageType>('landing');
-
-  const navigateToParentalLogin = () => {
-    setCurrentPage('parentalLogin');
-  };
-
-  const navigateToParentalDashboard = () => {
-    setCurrentPage('parentalDashboard');
-  };
-
-  const navigateToLanding = () => {
-    setCurrentPage('landing');
-  };
+function RouterWrapper() {
+  const navigate = useNavigate();
 
   return (
-    <div className="App">
-      {currentPage === 'landing' && (
-        <LandingPage onNavigateToLogin={navigateToParentalLogin} />
-      )}
-      
-      {currentPage === 'parentalLogin' && (
-        <ParentalLogin 
-          onNavigateBack={navigateToLanding}
-          onLoginSuccess={navigateToParentalDashboard}
-        />
-      )}
-      
-      {currentPage === 'parentalDashboard' && (
-        <ParentalDashboard onNavigateBack={navigateToLanding} />
-      )}
-    </div>
+    <Routes>
+      <Route path="/" element={<ParentalLogin />} />
+      <Route
+        path="/dashboard"
+        element={<ParentalDashboard onNavigateBack={() => navigate('/')} />}
+      />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <RouterWrapper />
+    </BrowserRouter>
   );
 }
 
