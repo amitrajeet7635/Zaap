@@ -168,7 +168,7 @@ export default function LandingPage({ onNavigateToLogin }: LandingPageProps) {
                   </div>
                 </div>
                 
-                <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-700/20 border border-yellow-500/30 rounded-2xl p-6 group-hover:border-yellow-500/60 transition-all duration-300 group-hover:bg-yellow-500/5">
+                <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-700/20 border border-yellow-500/30 rounded-2xl p-6 group-hover:border-yellow-500/60 transition-all duration-300 group_hover:bg-yellow-500/5">
                   <h4 className="text-xl font-bold text-yellow-400 mb-4 group-hover:text-yellow-300 transition-colors">
                     Fund & Monitor
                   </h4>
@@ -247,4 +247,4 @@ export default function LandingPage({ onNavigateToLogin }: LandingPageProps) {
     </div>
   )
 }
-         
+

@@ -15,7 +15,12 @@ function getEthereum() {
   return null;
 }
 
-export default function ParentalLogin() {
+interface ParentalLoginProps {
+  onAuthenticated: () => void;
+  onNavigateBack: () => void;
+}
+
+export default function ParentalLogin({ onAuthenticated, onNavigateBack }: ParentalLoginProps) {
   const [status, setStatus] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -68,9 +73,9 @@ export default function ParentalLogin() {
       console.log('Signed Delegation:', signedDelegation);
       setStatus(`Delegation successful for ${address}`);
 
-      // Redirect
+      // Redirect using navigation prop
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        onAuthenticated();
       }, 1500);
     } catch (err: any) {
       console.error('Delegation Error:', err);
@@ -168,6 +173,7 @@ export default function ParentalLogin() {
                   </div>
                 )}
               </Button>
+              <button onClick={onNavigateBack} className="mt-4 text-yellow-400 underline">Back to Home</button>
             </div>
           </Card>
 
