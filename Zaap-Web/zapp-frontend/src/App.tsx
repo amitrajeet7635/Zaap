@@ -1,27 +1,43 @@
-import { useState } from 'react'
-import LandingPage from './pages/LandingPage'
-import ParentalLogin from './pages/ParentalLogin'
-import ParentalDashboard from './pages/ParentalDashboard'
+import { useState } from 'react';
+import LandingPage from './pages/LandingPage';
+import ParentalLogin from './pages/ParentalLogin';
+import ParentalDashboard from './pages/ParentalDashboard';
+
+type PageType = 'landing' | 'parentalLogin' | 'parentalDashboard';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'dashboard'>('landing')
-  
+  const [currentPage, setCurrentPage] = useState<PageType>('landing');
+
+  const navigateToParentalLogin = () => {
+    setCurrentPage('parentalLogin');
+  };
+
+  const navigateToParentalDashboard = () => {
+    setCurrentPage('parentalDashboard');
+  };
+
+  const navigateToLanding = () => {
+    setCurrentPage('landing');
+  };
+
   return (
-    <div className="min-h-screen bg-black">
+    <div className="App">
       {currentPage === 'landing' && (
-        <LandingPage onNavigateToLogin={() => setCurrentPage('login')} />
+        <LandingPage onNavigateToLogin={navigateToParentalLogin} />
       )}
-      {currentPage === 'login' && (
+      
+      {currentPage === 'parentalLogin' && (
         <ParentalLogin 
-          onNavigateBack={() => setCurrentPage('landing')}
-          onNavigateToDashboard={() => setCurrentPage('dashboard')}
+          onNavigateBack={navigateToLanding}
+          onLoginSuccess={navigateToParentalDashboard}
         />
       )}
-      {currentPage === 'dashboard' && (
-        <ParentalDashboard onNavigateBack={() => setCurrentPage('landing')} />
+      
+      {currentPage === 'parentalDashboard' && (
+        <ParentalDashboard onNavigateBack={navigateToLanding} />
       )}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
