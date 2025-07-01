@@ -3,6 +3,8 @@ import { BrowserProvider, Contract, formatUnits, parseUnits } from 'ethers';
 import Header from '../components/Header'
 import Card from '../components/Card'
 import Button from '../components/Button'
+import { QRCodeSVG } from 'qrcode.react';
+import Modal from '../components/Modal';
 
 interface Child {
   id: string
@@ -32,7 +34,7 @@ interface ParentalDashboardProps {
 
 const CIRCLE_WALLET_MANAGER_ADDRESS = '0x76E74a8241E4c17989656Cd46949A7486e6bAB95'; // TODO: Replace with actual deployed address
 // Update to Ethereum Sepolia USDC address
-const USDC_ADDRESS = '0x6fC21072379d0a5F7e2C1e4dF2bA5bFfA1eA1e1C'; 
+const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'; 
 const CIRCLE_WALLET_ABI = [
   "function getChildBalance(address child) view returns (uint256)",
   "function allocateToChild(address child, uint256 amount)",
@@ -43,70 +45,20 @@ const USDC_ABI = [
 ];
 
 export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'children' | 'transactions' | 'settings'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'children' | 'transactions'>('overview')
   
   // Mock data - replace with real data from your API
-  const [children, setChildren] = useState<Child[]>([
-    {
-      id: '1',
-      name: 'Alex',
-      avatar: '👦',
-      balance: 125.50,
-      dailyLimit: 50,
-      weeklyLimit: 200,
-      spent: 35.20,
-      status: 'active'
-    },
-    {
-      id: '2',
-      name: 'Emma',
-      avatar: '👧',
-      balance: 85.30,
-      dailyLimit: 30,
-      weeklyLimit: 150,
-      spent: 22.50,
-      status: 'active'
-    }
-  ])
-
-  const [transactions] = useState<Transaction[]>([
-    {
-      id: '1',
-      childId: '1',
-      childName: 'Alex',
-      amount: 12.50,
-      merchant: 'Starbucks',
-      category: 'Food & Drink',
-      timestamp: '2024-01-20T14:30:00Z',
-      status: 'completed'
-    },
-    {
-      id: '2',
-      childId: '2',
-      childName: 'Emma',
-      amount: 8.99,
-      merchant: 'McDonald\'s',
-      category: 'Food & Drink',
-      timestamp: '2024-01-20T12:15:00Z',
-      status: 'completed'
-    },
-    {
-      id: '3',
-      childId: '1',
-      childName: 'Alex',
-      amount: 25.00,
-      merchant: 'GameStop',
-      category: 'Entertainment',
-      timestamp: '2024-01-19T16:45:00Z',
-      status: 'completed'
-    }
-  ])
+  const [children, setChildren] = useState<Child[]>([])
+  const [transactions] = useState<Transaction[]>([])
 
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [usdcBalance, setUsdcBalance] = useState<string>('0');
   const [allocAmount, setAllocAmount] = useState<string>('');
   const [allocChild, setAllocChild] = useState<string>('');
   const [txStatus, setTxStatus] = useState<string>('');
+  const [showQR, setShowQR] = useState(false);
+  const [qrData, setQRData] = useState('');
+  const [qrAmount, setQRAmount] = useState('');
 
   const updateChildLimit = (childId: string, type: 'daily' | 'weekly', amount: number) => {
     setChildren(prev => prev.map(child => 
@@ -197,6 +149,38 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     }
   };
 
+  // Example: USDC address and parent smart account address
+  const parentSmartAccount = walletAddress; // Or get from your smart account logic
+
+  // POST QR payload to backend (simulate mobile scan)
+  const handleConnectChild = async () => {
+    if (!qrData) return;
+    try {
+      const res = await fetch('/api/connect-child', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: qrData,
+      });
+      const result = await res.json();
+      alert(result.message || 'Child connected!');
+    } catch (e) {
+      alert('Failed to connect child.');
+    }
+  };
+
+  // Generate QR data
+  const handleGenerateQR = () => {
+    if (!parentSmartAccount || !qrAmount) return;
+    const qrPayload = {
+      delegator: parentSmartAccount,
+      token: USDC_ADDRESS,
+      maxAmount: qrAmount,
+      timestamp: Date.now(),
+    };
+    setQRData(JSON.stringify(qrPayload));
+    setShowQR(true);
+  };
+
   return (
     <div className="min-h-screen bg-black font-inter">
       <Header showLogin={false} />
@@ -216,19 +200,6 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
               <p className="text-gray-400 mt-1">Monitor and manage your family's spending</p>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <p className="text-sm text-gray-400">Total Family Balance</p>
-              <p className="text-2xl font-bold text-yellow-400">${totalBalance.toFixed(2)}</p>
-            </div>
-            <Button size="sm" className="px-6">
-              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-              </svg>
-              Add Funds
-            </Button>
-          </div>
         </div>
 
         {/* Navigation Tabs */}
@@ -236,8 +207,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
           {[
             { id: 'overview', label: 'Overview', icon: '📊' },
             { id: 'children', label: 'Children', icon: '👨‍👩‍👧‍👦' },
-            { id: 'transactions', label: 'Transactions', icon: '💳' },
-            { id: 'settings', label: 'Settings', icon: '⚙️' }
+            { id: 'transactions', label: 'Transactions', icon: '💳' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -265,7 +235,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-green-400">${totalBalance.toFixed(2)}</h3>
+                <h3 className="text-2xl font-bold text-green-400">{totalBalance.toFixed(2)} USDC</h3>
                 <p className="text-gray-300 text-sm">Total Balance</p>
               </Card>
 
@@ -275,7 +245,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                     <path d="M7 4V2C7 1.45 7.45 1 8 1H16C16.55 1 17 1.45 17 2V4H20V6H19V19C19 20.1 18.1 21 17 21H7C5.9 21 5 20.1 5 19V6H4V4H7Z"/>
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-yellow-400">${totalSpent.toFixed(2)}</h3>
+                <h3 className="text-2xl font-bold text-yellow-400">{totalSpent.toFixed(2)} USDC</h3>
                 <p className="text-gray-300 text-sm">Total Spent</p>
               </Card>
 
@@ -319,7 +289,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-white">${transaction.amount.toFixed(2)}</p>
+                      <p className="font-bold text-white">{transaction.amount.toFixed(2)} USDC</p>
                       <p className={`text-sm ${getStatusColor(transaction.status)}`}>
                         {transaction.status}
                       </p>
@@ -334,6 +304,18 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
         {/* Children Tab */}
         {activeTab === 'children' && (
           <div className="space-y-6">
+            {/* QR Code Generation Section - only in Children tab */}
+            <div className="flex items-center space-x-2 bg-gray-900/50 p-4 rounded-xl w-fit ml-auto mb-4">
+              <input
+                type="number"
+                placeholder="Max USDC Amount"
+                value={qrAmount}
+                onChange={e => setQRAmount(e.target.value)}
+                className="px-2 py-1 bg-amber-50 rounded mr-2"
+              />
+              <Button size="sm" onClick={handleGenerateQR}>Generate QR for Child</Button>
+            </div>
+
             {children.map(child => (
               <Card key={child.id} className="hover:border-yellow-400/50 transition-all duration-300">
                 <div className="flex items-center justify-between mb-6">
@@ -343,7 +325,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-white">{child.name}</h3>
-                      <p className="text-gray-400">Balance: ${child.balance.toFixed(2)}</p>
+                      <p className="text-gray-400">Balance: {child.balance.toFixed(2)} USDC</p>
                     </div>
                   </div>
                   
@@ -370,12 +352,12 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                   <div className="bg-gray-800/50 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="font-medium text-gray-300">Daily Limit</h4>
-                      <span className="text-yellow-400 font-bold">${child.dailyLimit}</span>
+                      <span className="text-yellow-400 font-bold">{child.dailyLimit} USDC</span>
                     </div>
                     <div className="mb-4">
                       <div className="flex justify-between text-sm text-gray-400 mb-2">
                         <span>Spent Today</span>
-                        <span>${child.spent.toFixed(2)}</span>
+                        <span>{child.spent.toFixed(2)} USDC</span>
                       </div>
                       <div className="w-full bg-gray-700 rounded-full h-2">
                         <div 
@@ -406,12 +388,12 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                   <div className="bg-gray-800/50 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="font-medium text-gray-300">Weekly Limit</h4>
-                      <span className="text-yellow-400 font-bold">${child.weeklyLimit}</span>
+                      <span className="text-yellow-400 font-bold">{child.weeklyLimit} USDC</span>
                     </div>
                     <div className="mb-4">
                       <div className="flex justify-between text-sm text-gray-400 mb-2">
                         <span>Spent This Week</span>
-                        <span>${(child.spent * 3).toFixed(2)}</span>
+                        <span>{(child.spent * 3).toFixed(2)} USDC</span>
                       </div>
                       <div className="w-full bg-gray-700 rounded-full h-2">
                         <div 
@@ -441,15 +423,29 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
               </Card>
             ))}
             
+            {/* Remove QR code generation from here, keep only Add New Child UI */}
             <Card className="text-center border-dashed border-2 border-gray-600 hover:border-yellow-400/50 transition-all duration-300 cursor-pointer">
               <div className="py-8">
                 <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
                   ➕
                 </div>
                 <h3 className="text-lg font-medium text-gray-400 mb-2">Add New Child</h3>
-                <p className="text-gray-500 text-sm">Create a new account and set spending limits</p>
+                <p className="text-gray-500 text-sm mb-4">Create a new account and set spending limits</p>
               </div>
             </Card>
+            {/* QR Modal */}
+            {showQR && (
+              <Modal onClose={() => setShowQR(false)}>
+                <div className="flex flex-col items-center p-6">
+                  <h3 className="text-lg text-white font-bold mb-4">Scan this QR in the Mobile App</h3>
+                  <div className="mb-4">
+                    <QRCodeSVG value={qrData} size={256} />
+                  </div>
+                  <Button className="mt-6" onClick={() => setShowQR(false)}>Close</Button>
+                  <Button className="mt-2" onClick={handleConnectChild}>Test Connect (simulate mobile)</Button>
+                </div>
+              </Modal>
+            )}
           </div>
         )}
 
@@ -494,7 +490,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="text-right">
-                      <p className="font-bold text-white">${transaction.amount.toFixed(2)}</p>
+                      <p className="font-bold text-white">{transaction.amount.toFixed(2)} USDC</p>
                       <p className={`text-sm ${getStatusColor(transaction.status)}`}>
                         {transaction.status}
                       </p>
@@ -509,58 +505,6 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
               ))}
             </div>
           </Card>
-        )}
-
-        {/* Settings Tab */}
-        {activeTab === 'settings' && (
-          <div className="space-y-6">
-            <Card>
-              <h3 className="text-xl font-bold text-yellow-400 mb-6">Notification Settings</h3>
-              <div className="space-y-4">
-                {[
-                  { label: 'Transaction Notifications', desc: 'Get notified for all transactions' },
-                  { label: 'Limit Alerts', desc: 'Alerts when spending limits are reached' },
-                  { label: 'Weekly Reports', desc: 'Weekly spending summary emails' },
-                  { label: 'Low Balance Warnings', desc: 'Notify when balance is low' }
-                ].map((setting, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-800/30 rounded-xl">
-                    <div>
-                      <p className="font-medium text-white">{setting.label}</p>
-                      <p className="text-sm text-gray-400">{setting.desc}</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" defaultChecked className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-400"></div>
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            <Card>
-              <h3 className="text-xl font-bold text-yellow-400 mb-6">Security Settings</h3>
-              <div className="space-y-4">
-                <Button variant="outline" className="w-full justify-start">
-                  <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9V17H10Z"/>
-                  </svg>
-                  Change PIN
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/>
-                  </svg>
-                  Enable Biometrics
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M21,9V7H9V9H21M21,11H9V13H21V11M21,15H9V17H21V15M7,7V9H5V7H7M7,11V13H5V11H7M7,15V17H5V15H7Z"/>
-                  </svg>
-                  Export Transaction Data
-                </Button>
-              </div>
-            </Card>
-          </div>
         )}
       </div>
 
@@ -581,29 +525,6 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
           </div>
         </div>
       </div>
-
-      {/* Add allocation UI in Overview tab */}
-      {activeTab === 'overview' && walletAddress && (
-        <div className="mt-8">
-          <h3 className="text-lg font-bold text-white mb-2">Allocate USDC to Child</h3>
-          <input
-            type="text"
-            placeholder="Child Address"
-            value={allocChild}
-            onChange={e => setAllocChild(e.target.value)}
-            className="px-2 py-1 rounded mr-2"
-          />
-          <input
-            type="number"
-            placeholder="Amount"
-            value={allocAmount}
-            onChange={e => setAllocAmount(e.target.value)}
-            className="px-2 py-1 rounded mr-2"
-          />
-          <Button size="sm" onClick={allocateUSDC}>Allocate</Button>
-          {txStatus && <p className="text-sm mt-2 text-yellow-400">{txStatus}</p>}
-        </div>
-      )}
     </div>
   )
 }

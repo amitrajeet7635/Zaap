@@ -36,6 +36,11 @@ export default defineConfig({
       protocolImports: true,
     })
   ],
+  server:{
+    proxy: {
+      '/api': 'http://localhost:4000'// Adjust the backend URL as needed
+    }
+  },
   define: {
     global: 'globalThis',
     'process.env': {},
