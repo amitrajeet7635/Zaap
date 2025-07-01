@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserProvider, Contract, formatUnits, parseUnits } from 'ethers';
+import { BrowserProvider, Contract, formatUnits } from 'ethers';
 import Header from '../components/Header'
 import Card from '../components/Card'
 import Button from '../components/Button'
@@ -32,13 +32,9 @@ interface ParentalDashboardProps {
   onNavigateBack: () => void
 }
 
-const CIRCLE_WALLET_MANAGER_ADDRESS = '0x76E74a8241E4c17989656Cd46949A7486e6bAB95'; // TODO: Replace with actual deployed address
 // Update to Ethereum Sepolia USDC address
 const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'; 
-const CIRCLE_WALLET_ABI = [
-  "function getChildBalance(address child) view returns (uint256)",
-  "function allocateToChild(address child, uint256 amount)",
-];
+
 const USDC_ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function approve(address spender, uint256 amount)",
@@ -53,9 +49,6 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
 
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [usdcBalance, setUsdcBalance] = useState<string>('0');
-  const [allocAmount, setAllocAmount] = useState<string>('');
-  const [allocChild, setAllocChild] = useState<string>('');
-  const [txStatus, setTxStatus] = useState<string>('');
   const [showQR, setShowQR] = useState(false);
   const [qrData, setQRData] = useState('');
   const [qrAmount, setQRAmount] = useState('');
@@ -127,27 +120,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     fetchBalance();
   }, [walletAddress]);
 
-  // Allocate USDC to child
-  const allocateUSDC = async () => {
-    if (!walletAddress || !allocChild || !allocAmount) return;
-    setTxStatus('Allocating...');
-    try {
-      const provider = new BrowserProvider((window as any).ethereum);
-      const signer = await provider.getSigner();
-      const usdc = new Contract(USDC_ADDRESS, USDC_ABI, signer);
-      const contract = new Contract(CIRCLE_WALLET_MANAGER_ADDRESS, CIRCLE_WALLET_ABI, signer);
-      const amount = parseUnits(allocAmount, 6);
-      // Approve contract
-      const tx1 = await usdc.approve(CIRCLE_WALLET_MANAGER_ADDRESS, amount);
-      await tx1.wait();
-      // Allocate
-      const tx2 = await contract.allocateToChild(allocChild, amount);
-      await tx2.wait();
-      setTxStatus('Allocation successful!');
-    } catch (e) {
-      setTxStatus('Allocation failed.');
-    }
-  };
+  
 
   // Example: USDC address and parent smart account address
   const parentSmartAccount = walletAddress; // Or get from your smart account logic
