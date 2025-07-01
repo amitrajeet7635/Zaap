@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react';
+import { BrowserProvider, Contract, formatUnits, parseUnits } from 'ethers';
 import Header from '../components/Header'
 import Card from '../components/Card'
 import Button from '../components/Button'
@@ -28,6 +29,18 @@ interface Transaction {
 interface ParentalDashboardProps {
   onNavigateBack: () => void
 }
+
+const CIRCLE_WALLET_MANAGER_ADDRESS = '0x76E74a8241E4c17989656Cd46949A7486e6bAB95'; // TODO: Replace with actual deployed address
+// Update to Ethereum Sepolia USDC address
+const USDC_ADDRESS = '0x6fC21072379d0a5F7e2C1e4dF2bA5bFfA1eA1e1C'; 
+const CIRCLE_WALLET_ABI = [
+  "function getChildBalance(address child) view returns (uint256)",
+  "function allocateToChild(address child, uint256 amount)",
+];
+const USDC_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function approve(address spender, uint256 amount)",
+];
 
 export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'children' | 'transactions' | 'settings'>('overview')
@@ -89,6 +102,12 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     }
   ])
 
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [usdcBalance, setUsdcBalance] = useState<string>('0');
+  const [allocAmount, setAllocAmount] = useState<string>('');
+  const [allocChild, setAllocChild] = useState<string>('');
+  const [txStatus, setTxStatus] = useState<string>('');
+
   const updateChildLimit = (childId: string, type: 'daily' | 'weekly', amount: number) => {
     setChildren(prev => prev.map(child => 
       child.id === childId 
@@ -135,6 +154,48 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
 
   const totalBalance = children.reduce((sum, child) => sum + child.balance, 0)
   const totalSpent = children.reduce((sum, child) => sum + child.spent, 0)
+
+  // Connect wallet
+  const connectWallet = async () => {
+    if (!(window as any).ethereum) return;
+    const provider = new BrowserProvider((window as any).ethereum);
+    const accounts = await provider.send('eth_requestAccounts', []);
+    setWalletAddress(accounts[0]);
+  };
+
+  // Fetch USDC balance
+  useEffect(() => {
+    if (!walletAddress) return;
+    const fetchBalance = async () => {
+      const provider = new BrowserProvider((window as any).ethereum);
+      const usdc = new Contract(USDC_ADDRESS, USDC_ABI, provider);
+      const bal = await usdc.balanceOf(walletAddress);
+      setUsdcBalance(formatUnits(bal, 6));
+    };
+    fetchBalance();
+  }, [walletAddress]);
+
+  // Allocate USDC to child
+  const allocateUSDC = async () => {
+    if (!walletAddress || !allocChild || !allocAmount) return;
+    setTxStatus('Allocating...');
+    try {
+      const provider = new BrowserProvider((window as any).ethereum);
+      const signer = await provider.getSigner();
+      const usdc = new Contract(USDC_ADDRESS, USDC_ABI, signer);
+      const contract = new Contract(CIRCLE_WALLET_MANAGER_ADDRESS, CIRCLE_WALLET_ABI, signer);
+      const amount = parseUnits(allocAmount, 6);
+      // Approve contract
+      const tx1 = await usdc.approve(CIRCLE_WALLET_MANAGER_ADDRESS, amount);
+      await tx1.wait();
+      // Allocate
+      const tx2 = await contract.allocateToChild(allocChild, amount);
+      await tx2.wait();
+      setTxStatus('Allocation successful!');
+    } catch (e) {
+      setTxStatus('Allocation failed.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-black font-inter">
@@ -502,6 +563,47 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
           </div>
         )}
       </div>
+
+      {/* Wallet Connection and USDC Allocation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 p-4 border-t border-gray-700">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            {!walletAddress ? (
+              <Button size="sm" className="px-6" onClick={connectWallet}>
+                Connect Wallet
+              </Button>
+            ) : (
+              <div className="text-right">
+                <p className="text-sm text-gray-400">Wallet: {walletAddress.slice(0,6)}...{walletAddress.slice(-4)}</p>
+                <p className="text-sm text-yellow-400">USDC: {usdcBalance}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Add allocation UI in Overview tab */}
+      {activeTab === 'overview' && walletAddress && (
+        <div className="mt-8">
+          <h3 className="text-lg font-bold text-white mb-2">Allocate USDC to Child</h3>
+          <input
+            type="text"
+            placeholder="Child Address"
+            value={allocChild}
+            onChange={e => setAllocChild(e.target.value)}
+            className="px-2 py-1 rounded mr-2"
+          />
+          <input
+            type="number"
+            placeholder="Amount"
+            value={allocAmount}
+            onChange={e => setAllocAmount(e.target.value)}
+            className="px-2 py-1 rounded mr-2"
+          />
+          <Button size="sm" onClick={allocateUSDC}>Allocate</Button>
+          {txStatus && <p className="text-sm mt-2 text-yellow-400">{txStatus}</p>}
+        </div>
+      )}
     </div>
   )
 }
