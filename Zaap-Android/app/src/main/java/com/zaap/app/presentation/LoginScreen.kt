@@ -23,6 +23,7 @@ import com.web3auth.core.types.LoginParams
 import com.web3auth.core.types.Network
 import com.web3auth.core.types.Provider
 import com.web3auth.core.types.Web3AuthOptions
+import com.zaap.app.BuildConfig
 import com.zaap.app.presentation.viewmodel.AuthViewModel
 
 @Composable
@@ -46,16 +47,16 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit
 ) {
 
-
     @SuppressLint("ContextCast") val activity = getActivity()
 
     val userInfo = viewModel.userInfo
     val errorMessage = viewModel.errorMessage
+    val ClientId = BuildConfig.Web3Auth_ClientID
 
     val web3Auth = remember(activity) {
         Web3Auth(
             Web3AuthOptions(
-                "Web3AuthClientID",
+                ClientId,
                 Network.SAPPHIRE_DEVNET,
                 BuildEnv.PRODUCTION,
                 Uri.parse("com.zaap.app://auth")
