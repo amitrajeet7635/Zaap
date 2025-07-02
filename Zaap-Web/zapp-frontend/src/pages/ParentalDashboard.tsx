@@ -133,31 +133,31 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
   }, []);
 
   // Add new child after QR generation
-  const handleAddChild = async (child: Partial<Child>) => {
-    const res = await fetch('/api/children', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(child)
-    });
-    if (res.ok) {
-      const newChild = await res.json();
-      setChildren(prev => [...prev, newChild]);
-    }
-  };
+  // const handleAddChild = async (child: Partial<Child>) => {
+  //   const res = await fetch('/api/children', {
+  //     method: 'POST',
+  //     headers: { 'Content-Type': 'application/json' },
+  //     body: JSON.stringify(child)
+  //   });
+  //   if (res.ok) {
+  //     const newChild = await res.json();
+  //     setChildren(prev => [...prev, newChild]);
+  //   }
+  // };
 
-  // Update child alias/limits
-  const handleUpdateChild = async (address: string, updates: Partial<Child>) => {
-    const res = await fetch(`/api/children/${address}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates)
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      setChildren(prev => prev.map(c => c.walletAddress === address ? { ...c, ...updated } : c));
-      alert('Changes saved successfully!');
-    }
-  };
+  // // Update child alias/limits
+  // const handleUpdateChild = async (address: string, updates: Partial<Child>) => {
+  //   const res = await fetch(`/api/children/${address}`, {
+  //     method: 'PUT',
+  //     headers: { 'Content-Type': 'application/json' },
+  //     body: JSON.stringify(updates)
+  //   });
+  //   if (res.ok) {
+  //     const updated = await res.json();
+  //     setChildren(prev => prev.map(c => c.walletAddress === address ? { ...c, ...updated } : c));
+  //     alert('Changes saved successfully!');
+  //   }
+  // };
 
   // Generate QR data
   const handleGenerateQR = () => {
@@ -201,24 +201,24 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
   };
 
   // On QR modal confirm, add new child
-  const handleConfirmAddChild = (alias: string) => {
-    // Simulate wallet address from QR (in real: get from backend or scan result)
-    const newWallet = '0x' + Math.random().toString(16).slice(2, 42).padEnd(40, '0');
-    handleAddChild({
-      walletAddress: newWallet,
-      name: alias, 
-      maxAmount: Number(qrAmount),
-      balance: 0,
-      weeklyLimit: 0,
-      monthlyLimit: 0,
-      spent: 0,
-      status: 'active',
-      avatar: '👤',
-      id: newWallet
-    });
-    setShowQR(false);
-    setQRAmount('');
-  };
+  // const handleConfirmAddChild = (alias: string) => {
+  //   // Simulate wallet address from QR (in real: get from backend or scan result)
+  //   const newWallet = '0x' + Math.random().toString(16).slice(2, 42).padEnd(40, '0');
+  //   handleAddChild({
+  //     walletAddress: newWallet,
+  //     name: alias, 
+  //     maxAmount: Number(qrAmount),
+  //     balance: 0,
+  //     weeklyLimit: 0,
+  //     monthlyLimit: 0,
+  //     spent: 0,
+  //     status: 'active',
+  //     avatar: '👤',
+  //     id: newWallet
+  //   });
+  //   setShowQR(false);
+  //   setQRAmount('');
+  // };
 
   return (
     <div className="min-h-screen bg-black font-inter">
