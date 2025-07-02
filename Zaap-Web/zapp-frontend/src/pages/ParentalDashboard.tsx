@@ -8,13 +8,15 @@ import Modal from '../components/Modal';
 
 interface Child {
   id: string
-  name: string
+  name: string // alias
   avatar: string
   balance: number
-  dailyLimit: number
   weeklyLimit: number
+  monthlyLimit: number
   spent: number
   status: 'active' | 'restricted'
+  walletAddress: string
+  maxAmount: number
 }
 
 interface Transaction {
@@ -52,11 +54,13 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
   const [showQR, setShowQR] = useState(false);
   const [qrData, setQRData] = useState('');
   const [qrAmount, setQRAmount] = useState('');
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrTestResult, setQrTestResult] = useState<string | null>(null);
 
-  const updateChildLimit = (childId: string, type: 'daily' | 'weekly', amount: number) => {
+  const updateChildLimit = (childId: string, type: 'weekly' | 'monthly', amount: number) => {
     setChildren(prev => prev.map(child => 
       child.id === childId 
-        ? { ...child, [type === 'daily' ? 'dailyLimit' : 'weeklyLimit']: amount }
+        ? { ...child, [type === 'weekly' ? 'weeklyLimit' : 'monthlyLimit']: amount }
         : child
     ))
   }
@@ -120,39 +124,101 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     fetchBalance();
   }, [walletAddress]);
 
-  
+  // Fetch children from backend
+  useEffect(() => {
+    fetch('/api/children')
+      .then(res => res.json())
+      .then(setChildren)
+      .catch(() => setChildren([]));
+  }, []);
 
-  // Example: USDC address and parent smart account address
-  const parentSmartAccount = walletAddress; // Or get from your smart account logic
+  // Add new child after QR generation
+  // const handleAddChild = async (child: Partial<Child>) => {
+  //   const res = await fetch('/api/children', {
+  //     method: 'POST',
+  //     headers: { 'Content-Type': 'application/json' },
+  //     body: JSON.stringify(child)
+  //   });
+  //   if (res.ok) {
+  //     const newChild = await res.json();
+  //     setChildren(prev => [...prev, newChild]);
+  //   }
+  // };
 
-  // POST QR payload to backend (simulate mobile scan)
-  const handleConnectChild = async () => {
-    if (!qrData) return;
-    try {
-      const res = await fetch('/api/connect-child', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: qrData,
-      });
-      const result = await res.json();
-      alert(result.message || 'Child connected!');
-    } catch (e) {
-      alert('Failed to connect child.');
-    }
-  };
+  // // Update child alias/limits
+  // const handleUpdateChild = async (address: string, updates: Partial<Child>) => {
+  //   const res = await fetch(`/api/children/${address}`, {
+  //     method: 'PUT',
+  //     headers: { 'Content-Type': 'application/json' },
+  //     body: JSON.stringify(updates)
+  //   });
+  //   if (res.ok) {
+  //     const updated = await res.json();
+  //     setChildren(prev => prev.map(c => c.walletAddress === address ? { ...c, ...updated } : c));
+  //     alert('Changes saved successfully!');
+  //   }
+  // };
 
   // Generate QR data
   const handleGenerateQR = () => {
-    if (!parentSmartAccount || !qrAmount) return;
+    if (!walletAddress || !qrAmount) return;
     const qrPayload = {
-      delegator: parentSmartAccount,
+      delegator: walletAddress,
       token: USDC_ADDRESS,
       maxAmount: qrAmount,
       timestamp: Date.now(),
     };
     setQRData(JSON.stringify(qrPayload));
     setShowQR(true);
+    setShowQRModal(false); // reset modal state
   };
+
+  // Test connect-child API
+  const handleTestConnect = async () => {
+    setQrTestResult(null);
+    try {
+      const res = await fetch('/api/connect-child', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: qrData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setQrTestResult('✅ Connection successful!');
+      } else {
+        setQrTestResult('❌ Connection failed: ' + (data?.error || 'Unknown error'));
+      }
+    } catch (e) {
+      setQrTestResult('❌ Connection failed: Network error');
+    }
+  };
+
+  // Add this function to handle alias (name) change
+  const updateChildAlias = (childId: string, newAlias: string) => {
+    setChildren(prev => prev.map(child =>
+      child.id === childId ? { ...child, name: newAlias } : child
+    ));
+  };
+
+  // On QR modal confirm, add new child
+  // const handleConfirmAddChild = (alias: string) => {
+  //   // Simulate wallet address from QR (in real: get from backend or scan result)
+  //   const newWallet = '0x' + Math.random().toString(16).slice(2, 42).padEnd(40, '0');
+  //   handleAddChild({
+  //     walletAddress: newWallet,
+  //     name: alias, 
+  //     maxAmount: Number(qrAmount),
+  //     balance: 0,
+  //     weeklyLimit: 0,
+  //     monthlyLimit: 0,
+  //     spent: 0,
+  //     status: 'active',
+  //     avatar: '👤',
+  //     id: newWallet
+  //   });
+  //   setShowQR(false);
+  //   setQRAmount('');
+  // };
 
   return (
     <div className="min-h-screen bg-black font-inter">
@@ -263,9 +329,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-white">{transaction.amount.toFixed(2)} USDC</p>
-                      <p className={`text-sm ${getStatusColor(transaction.status)}`}>
-                        {transaction.status}
-                      </p>
+                      <p className={`text-sm ${getStatusColor(transaction.status)}`}>{transaction.status}</p>
                     </div>
                   </div>
                 ))}
@@ -277,18 +341,40 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
         {/* Children Tab */}
         {activeTab === 'children' && (
           <div className="space-y-6">
-            {/* QR Code Generation Section - only in Children tab */}
-            <div className="flex items-center space-x-2 bg-gray-900/50 p-4 rounded-xl w-fit ml-auto mb-4">
-              <input
-                type="number"
-                placeholder="Max USDC Amount"
-                value={qrAmount}
-                onChange={e => setQRAmount(e.target.value)}
-                className="px-2 py-1 bg-amber-50 rounded mr-2"
-              />
-              <Button size="sm" onClick={handleGenerateQR}>Generate QR for Child</Button>
-            </div>
-
+            {/* QR Code Generation UI */}
+            <Card className="mb-6">
+              <h3 className="text-lg font-bold text-yellow-400 mb-2">Add New Child Account</h3>
+              <div className="flex flex-col md:flex-row md:items-end md:space-x-4 space-y-2 md:space-y-0">
+                <div className="flex flex-col">
+                  <label className="text-gray-300 text-sm mb-1">Max USDC for Child</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={qrAmount}
+                    onChange={e => setQRAmount(e.target.value)}
+                    className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 w-40"
+                    placeholder="e.g. 100"
+                  />
+                </div>
+                <Button size="sm" className="mt-2 md:mt-0" onClick={handleGenerateQR}>
+                  Generate QR
+                </Button>
+                {showQR && (
+                  <div className="flex flex-col items-center ml-4 cursor-pointer" onClick={() => setShowQRModal(true)}>
+                    <QRCodeSVG value={qrData} size={120} />
+                    <span className="text-xs text-gray-400 mt-1">Click to enlarge</span>
+                    <Button size="sm" className="mt-2" onClick={() => setShowQR(false)}>
+                      Close
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Card>
+            {/* Children List */}
+            {children.length === 0 && (
+              <div className="text-gray-400 text-center py-12">No children added yet. Generate a QR to add a child account.</div>
+            )}
             {children.map(child => (
               <Card key={child.id} className="hover:border-yellow-400/50 transition-all duration-300">
                 <div className="flex items-center justify-between mb-6">
@@ -297,11 +383,18 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                       {child.avatar}
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-white">{child.name}</h3>
-                      <p className="text-gray-400">Balance: {child.balance.toFixed(2)} USDC</p>
+                      {/* Editable alias */}
+                      <input
+                        type="text"
+                        value={child.name}
+                        onChange={e => updateChildAlias(child.id, e.target.value)}
+                        placeholder="Set child alias"
+                        className="text-xl font-bold text-white bg-transparent border-b border-yellow-400 focus:outline-none focus:border-yellow-600 mb-1"
+                        style={{ minWidth: 120 }}
+                      />
+                      <p className="text-gray-400">Balance: {child.balance} USDC</p>
                     </div>
                   </div>
-                  
                   <div className="flex items-center space-x-4">
                     <div className={`px-3 py-1 rounded-full text-sm font-medium ${
                       child.status === 'active' 
@@ -319,44 +412,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                     </Button>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Daily Limit */}
-                  <div className="bg-gray-800/50 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-medium text-gray-300">Daily Limit</h4>
-                      <span className="text-yellow-400 font-bold">{child.dailyLimit} USDC</span>
-                    </div>
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm text-gray-400 mb-2">
-                        <span>Spent Today</span>
-                        <span>{child.spent.toFixed(2)} USDC</span>
-                      </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-yellow-400 to-yellow-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${Math.min((child.spent / child.dailyLimit) * 100, 100)}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="range"
-                        min="10"
-                        max="200"
-                        value={child.dailyLimit}
-                        onChange={(e) => updateChildLimit(child.id, 'daily', parseInt(e.target.value))}
-                        className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-                      />
-                      <input
-                        type="number"
-                        value={child.dailyLimit}
-                        onChange={(e) => updateChildLimit(child.id, 'daily', parseInt(e.target.value))}
-                        className="w-16 px-2 py-1 bg-gray-700 text-white rounded text-sm"
-                      />
-                    </div>
-                  </div>
-
                   {/* Weekly Limit */}
                   <div className="bg-gray-800/50 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-4">
@@ -366,20 +422,20 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                     <div className="mb-4">
                       <div className="flex justify-between text-sm text-gray-400 mb-2">
                         <span>Spent This Week</span>
-                        <span>{(child.spent * 3).toFixed(2)} USDC</span>
+                        <span>{child.spent} USDC</span>
                       </div>
                       <div className="w-full bg-gray-700 rounded-full h-2">
                         <div 
-                          className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${Math.min(((child.spent * 3) / child.weeklyLimit) * 100, 100)}%` }}
+                          className="bg-gradient-to-r from-yellow-400 to-yellow-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min((child.spent / child.weeklyLimit) * 100, 100)}%` }}
                         ></div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       <input
                         type="range"
-                        min="50"
-                        max="500"
+                        min="10"
+                        max="2000"
                         value={child.weeklyLimit}
                         onChange={(e) => updateChildLimit(child.id, 'weekly', parseInt(e.target.value))}
                         className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
@@ -392,33 +448,50 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                       />
                     </div>
                   </div>
+
+                  {/* Monthly Limit */}
+                  <div className="bg-gray-800/50 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-medium text-gray-300">Monthly Limit</h4>
+                      <span className="text-yellow-400 font-bold">{child.monthlyLimit} USDC</span>
+                    </div>
+                    <div className="mb-4">
+                      <div className="flex justify-between text-sm text-gray-400 mb-2">
+                        <span>Spent This Month</span>
+                        <span>{child.spent} USDC</span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min((child.spent / child.monthlyLimit) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="range"
+                        min="50"
+                        max="8000"
+                        value={child.monthlyLimit}
+                        onChange={(e) => updateChildLimit(child.id, 'monthly', parseInt(e.target.value))}
+                        className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <input
+                        type="number"
+                        value={child.monthlyLimit}
+                        onChange={(e) => updateChildLimit(child.id, 'monthly', parseInt(e.target.value))}
+                        className="w-16 px-2 py-1 bg-gray-700 text-white rounded text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end mt-4">
+                  <Button size="sm" onClick={() => {/* TODO: Save/confirm changes for this child */}}>
+                    Confirm Changes
+                  </Button>
                 </div>
               </Card>
             ))}
-            
-            {/* Remove QR code generation from here, keep only Add New Child UI */}
-            <Card className="text-center border-dashed border-2 border-gray-600 hover:border-yellow-400/50 transition-all duration-300 cursor-pointer">
-              <div className="py-8">
-                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
-                  ➕
-                </div>
-                <h3 className="text-lg font-medium text-gray-400 mb-2">Add New Child</h3>
-                <p className="text-gray-500 text-sm mb-4">Create a new account and set spending limits</p>
-              </div>
-            </Card>
-            {/* QR Modal */}
-            {showQR && (
-              <Modal onClose={() => setShowQR(false)}>
-                <div className="flex flex-col items-center p-6">
-                  <h3 className="text-lg text-white font-bold mb-4">Scan this QR in the Mobile App</h3>
-                  <div className="mb-4">
-                    <QRCodeSVG value={qrData} size={256} />
-                  </div>
-                  <Button className="mt-6" onClick={() => setShowQR(false)}>Close</Button>
-                  <Button className="mt-2" onClick={handleConnectChild}>Test Connect (simulate mobile)</Button>
-                </div>
-              </Modal>
-            )}
           </div>
         )}
 
@@ -498,6 +571,27 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
           </div>
         </div>
       </div>
+
+      {/* QR Modal Popup */}
+      {showQRModal && (
+        <Modal onClose={() => { setShowQRModal(false); setQrTestResult(null); }}>
+          <div className="flex flex-col items-center p-6 bg-gray-900 rounded-2xl max-w-xs mx-auto">
+            <h2 className="text-xl font-bold text-yellow-400 mb-4">Child Account QR</h2>
+            <QRCodeSVG value={qrData} size={200} />
+            <div className="mt-4 w-full flex flex-col items-center">
+              <Button size="sm" className="w-full" onClick={handleTestConnect}>
+                Test Connect
+              </Button>
+              {qrTestResult && (
+                <div className="mt-2 text-center text-sm text-white">{qrTestResult}</div>
+              )}
+              <Button size="sm" className="w-full mt-2" variant="outline" onClick={() => { setShowQRModal(false); setQrTestResult(null); }}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
