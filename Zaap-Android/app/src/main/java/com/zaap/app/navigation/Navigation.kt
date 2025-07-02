@@ -21,7 +21,7 @@ fun Navigation(
     navHostController: NavHostController,
     deepLinkUri: Uri? = null
 ) {
-    NavHost(navController = navHostController, startDestination = "ParentConnect") {
+    NavHost(navController = navHostController, startDestination = "Login") {
         composable("Home") {
             HomePage(
                 modifier = modifier, navHostController
