@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.zaap.app"
-        minSdk = 25
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -77,5 +77,11 @@ dependencies {
     implementation ("com.google.android.gms:play-services-code-scanner:16.1.0")
 
     implementation("com.google.accompanist:accompanist-permissions:0.37.3")
+
+    implementation ("com.github.web3auth:web3auth-android-sdk:9.1.2")
+    implementation ("org.web3j:core:4.8.7-android")
+
+    implementation ("androidx.browser:browser:1.6.0")
+
 
 }

@@ -19,6 +19,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Zaap"
+        tools:replace="android:allowBackup, android:fullBackupContent"
         tools:targetApi="31">
         <activity
             android:name=".MainActivity"
@@ -29,6 +30,15 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="com.zaap.app"
+                    android:host="auth" />
             </intent-filter>
         </activity>
     </application>
