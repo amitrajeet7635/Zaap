@@ -55,7 +55,7 @@ fun LoginScreen(
     val web3Auth = remember(activity) {
         Web3Auth(
             Web3AuthOptions(
-                "WEB3AuthClientID",
+                "Web3AuthClientID",
                 Network.SAPPHIRE_DEVNET,
                 BuildEnv.PRODUCTION,
                 Uri.parse("com.zaap.app://auth")
