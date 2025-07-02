@@ -37,7 +37,7 @@ import java.util.concurrent.Executors
 // Composable that integrates the camera preview and ML Kit Barcode Scanning.
 // It takes a callback function to return the scanned QR code result.
 @Composable
-fun ScanAndPayScanner(onQrCodeScanned: (String) -> Unit) {
+fun Scanner(onQrCodeScanned: (String) -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 

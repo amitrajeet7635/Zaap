@@ -1,5 +1,6 @@
-package com.zaap.app.presentation
+package com.zaap.app.presentation.features
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import com.zaap.app.R
 import androidx.compose.foundation.background
@@ -22,8 +23,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -32,14 +36,31 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import com.zaap.app.ui.theme.MatteBlack
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun ParentConnect(modifier: Modifier = Modifier.background(Color(0xFFE76C53))) {
+fun ParentConnect(modifier: Modifier = Modifier.background(Color(0xFFE76C53)), navHostController: NavHostController) {
+
+    val permissionState =
+        rememberPermissionState(android.Manifest.permission.CAMERA)
+    var shouldNavigate by remember { mutableStateOf(false) }
+
+    LaunchedEffect(permissionState.status.isGranted, shouldNavigate) {
+        if (shouldNavigate && permissionState.status.isGranted) {
+            navHostController.navigate("ConnectToParentQRScan")
+            shouldNavigate = false // reset
+        }
+    }
+
 
     val qr_pairing_animation by rememberLottieComposition(spec = LottieCompositionSpec.RawRes(R.raw.qrpair))
     Box(
@@ -179,7 +200,14 @@ fun ParentConnect(modifier: Modifier = Modifier.background(Color(0xFFE76C53))) {
             Spacer(Modifier.height(40.dp))
 
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Button(onClick = {}, modifier = Modifier.fillMaxWidth(0.9f), colors = ButtonDefaults.buttonColors(MatteBlack)) {
+                Button(onClick = {
+                    if (!permissionState.status.isGranted){
+                        permissionState.launchPermissionRequest()
+                        shouldNavigate = true
+                    } else {
+                        navHostController.navigate("ConnectToParentQRScan")
+                    }
+                }, modifier = Modifier.fillMaxWidth(0.9f), colors = ButtonDefaults.buttonColors(MatteBlack)) {
                     Text(text = "Scan QR", fontSize = 18.sp, fontWeight = FontWeight.Medium, color = Color.White)
                 }
             }

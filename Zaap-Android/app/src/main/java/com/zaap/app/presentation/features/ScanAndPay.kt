@@ -23,7 +23,7 @@ import androidx.navigation.NavHostController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import com.zaap.app.presentation.modules.ScanAndPayScanner
+import com.zaap.app.presentation.modules.Scanner
 import com.zaap.app.presentation.viewmodel.ScanDataViewModel
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -68,7 +68,7 @@ fun ScanAndPay(
                     .background(Color.Black),
                 contentAlignment = Alignment.Center
             ) {
-                ScanAndPayScanner { result ->
+                Scanner { result ->
                     scanDataViewModel.setScannedData(result)
                     navHostController.navigate("ScanPayCheckout")
                 }

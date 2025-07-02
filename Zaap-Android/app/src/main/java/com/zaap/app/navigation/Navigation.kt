@@ -9,7 +9,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navDeepLink
 import com.zaap.app.presentation.HomePage
 import com.zaap.app.presentation.LoginScreen
-import com.zaap.app.presentation.ParentConnect
+import com.zaap.app.presentation.features.ConnectToParentQRScan
+import com.zaap.app.presentation.features.ParentConnect
 import com.zaap.app.presentation.features.ScanAndPay
 import com.zaap.app.presentation.features.ScanPayCheckout
 import com.zaap.app.presentation.features.TransferMoney
@@ -50,7 +51,11 @@ fun Navigation(
         }
 
         composable("ParentConnect") {
-            ParentConnect()
+            ParentConnect(navHostController = navHostController)
+        }
+
+        composable("ConnectToParentQRScan") {
+            ConnectToParentQRScan()
         }
     }
 }
