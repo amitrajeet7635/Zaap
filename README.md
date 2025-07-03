@@ -24,7 +24,7 @@
 <table align="left">
   <tr>
     <td><img src="https://github.com/Anmol-Baranwal/Cool-GIFs-For-GitHub/assets/74038190/7bb1e704-6026-48f9-8435-2f4d40101348" width="50"></td>
-    <td><h4>Built by the Zapp Squad</h4></td>
+    <td><h4>Built by the Zaap Squad</h4></td>
   </tr>
   <tr>
     <td colspan="2" align="center">
