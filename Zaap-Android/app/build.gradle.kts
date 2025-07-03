@@ -19,8 +19,15 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "Web3Auth_ClientID", "\"${findProperty("Web3Auth_ClientID")}\"")
+//        println("Web3Auth_ClientID = ${findProperty("Web3Auth_ClientID")}")
+//
+//
+//        buildConfigField("String", "Web3Auth_ClientID", "\"${findProperty("Web3Auth_ClientID")}\"")
 
+    }
+
+    secrets {
+        propertiesFileName = "secrets.properties"
     }
 
     buildTypes {
@@ -85,5 +92,10 @@ dependencies {
     implementation("org.web3j:core:4.8.7-android")
 
     implementation("androidx.browser:browser:1.6.0")
+
+    implementation ("androidx.datastore:datastore-preferences:1.1.7")
+
+    implementation("io.coil-kt.coil3:coil-compose:3.2.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")
 
 }

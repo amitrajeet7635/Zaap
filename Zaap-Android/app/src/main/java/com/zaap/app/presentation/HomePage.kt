@@ -41,8 +41,11 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +53,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
@@ -60,11 +64,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
+import coil3.compose.AsyncImage
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.zaap.app.R
+import com.zaap.app.data.local.datastore.UserData
+import com.zaap.app.data.local.datastore.UserSessionManager
 import com.zaap.app.ui.theme.MatteBlack
 import com.zaap.app.ui.theme.fredokaSemiExpanded
 
@@ -74,48 +81,57 @@ fun HomePage(modifier: Modifier = Modifier, navHostController: NavHostController
         WindowInsets.statusBars.getTop(this).toDp()
     }
 
-    LazyColumn(modifier = Modifier.padding(horizontal = 0.dp)) {
-        item {
-            Column(
-                Modifier
-                    .padding(bottom = 5.dp)
-                    .clip(RoundedCornerShape(bottomEnd = 40.dp, bottomStart = 40.dp))
-                    .background(Color(0xFF9cacff))
-            ) {
-                TopBar(modifier = Modifier, statusBarHeightDp)
-                Card()
+    val context = LocalContext.current
+    var userData by remember { mutableStateOf<UserData?>(null) }
+
+    LaunchedEffect(Unit) {
+        userData = UserSessionManager.getUser(context)
+    }
+
+    userData?.let { user ->
+        LazyColumn(modifier = Modifier.padding(horizontal = 0.dp)) {
+            item {
+                Column(
+                    Modifier
+                        .padding(bottom = 5.dp)
+                        .clip(RoundedCornerShape(bottomEnd = 40.dp, bottomStart = 40.dp))
+                        .background(Color(0xFF9cacff))
+                ) {
+                    TopBar(modifier = Modifier, name = user.name.toString(), imageUrl = user.profileImage.toString(), statusBarHeightDp)
+                    Card()
+                }
             }
-        }
 
-        item {
-            QuickActions(Modifier.padding(vertical = 5.dp), navHostController)
-        }
+            item {
+                QuickActions(Modifier.padding(vertical = 5.dp), navHostController)
+            }
 
-        item {
-            AccountControlsSection()
-        }
+            item {
+                AccountControlsSection()
+            }
 
-        item {
-            RewardsCard()
-        }
-        item {
-            DetailedSection()
-        }
+            item {
+                RewardsCard()
+            }
+            item {
+                DetailedSection()
+            }
 
-        item {
-            BrandingLogo(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 5.dp)
-                    .height(180.dp)
-            )
+            item {
+                BrandingLogo(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 5.dp)
+                        .height(180.dp)
+                )
+            }
         }
     }
 }
 
 
 @Composable
-fun TopBar(modifier: Modifier = Modifier, statusBarHeightDp: Dp) {
+fun TopBar(modifier: Modifier = Modifier, name: String, imageUrl: String, statusBarHeightDp: Dp) {
 
     Box(
         modifier = modifier
@@ -130,9 +146,10 @@ fun TopBar(modifier: Modifier = Modifier, statusBarHeightDp: Dp) {
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                "Hey Ashish,", fontSize = 18.sp, color = Color.Black, fontWeight = FontWeight.Medium
+                "Hey ${name},", fontSize = 18.sp, color = Color.Black, fontWeight = FontWeight.Medium
             )
-            Icon(Icons.Default.AccountCircle, contentDescription = "Profile", tint = Color.Black)
+//            Icon(Icons.Default.AccountCircle, contentDescription = "Profile", tint = Color.Black)
+            AsyncImage(model = imageUrl, contentDescription = null, modifier = Modifier.size(28.dp).clip(RoundedCornerShape(50.dp)))
         }
 
     }

@@ -2,11 +2,18 @@ package com.zaap.app.navigation
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navDeepLink
+import com.zaap.app.data.local.datastore.UserSessionManager
 import com.zaap.app.presentation.HomePage
 import com.zaap.app.presentation.LoginScreen
 import com.zaap.app.presentation.features.ConnectToParentQRScan
@@ -21,41 +28,55 @@ fun Navigation(
     navHostController: NavHostController,
     deepLinkUri: Uri? = null
 ) {
-    NavHost(navController = navHostController, startDestination = "Login") {
-        composable("Home") {
-            HomePage(
-                modifier = modifier, navHostController
-            )
-        }
-        composable("TransferMoney") {
-            TransferMoney()
-        }
-        composable("ScanAndPay") {
-            ScanAndPay(navHostController = navHostController)
-        }
-        composable("ScanPayCheckout") {
-            ScanPayCheckout(navHostController = navHostController)
-        }
 
-        composable("Login", deepLinks = listOf(navDeepLink { uriPattern = "com.zaap.app//auth" })) {
-            LoginScreen(
-                resultUri = deepLinkUri,
-                onLoginSuccess = {
-                    navHostController.navigate("Home") {
-                        popUpTo("Login") {
-                            inclusive = true
+    val context = LocalContext.current
+    var startDestination by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        val isLoggedIn = UserSessionManager.isLoggedIn(context)
+        startDestination = if (isLoggedIn) "Home" else "Login"
+    }
+
+    startDestination?.let {
+        NavHost(navController = navHostController, startDestination = it) {
+            composable("Home") {
+                HomePage(
+                    modifier = modifier, navHostController
+                )
+            }
+            composable("TransferMoney") {
+                TransferMoney()
+            }
+            composable("ScanAndPay") {
+                ScanAndPay(navHostController = navHostController)
+            }
+            composable("ScanPayCheckout") {
+                ScanPayCheckout(navHostController = navHostController)
+            }
+
+            composable(
+                "Login",
+                deepLinks = listOf(navDeepLink { uriPattern = "com.zaap.app//auth" })
+            ) {
+                LoginScreen(
+                    resultUri = deepLinkUri,
+                    onLoginSuccess = {
+                        navHostController.navigate("Home") {
+                            popUpTo("Login") {
+                                inclusive = true
+                            }
                         }
-                    }
-                })
+                    })
 
-        }
+            }
 
-        composable("ParentConnect") {
-            ParentConnect(navHostController = navHostController)
-        }
+            composable("ParentConnect") {
+                ParentConnect(navHostController = navHostController)
+            }
 
-        composable("ConnectToParentQRScan") {
-            ConnectToParentQRScan()
+            composable("ConnectToParentQRScan") {
+                ConnectToParentQRScan()
+            }
         }
     }
 }

@@ -54,7 +54,12 @@ import com.web3auth.core.types.Provider
 import com.web3auth.core.types.Web3AuthOptions
 import com.zaap.app.BuildConfig
 import com.zaap.app.R
+import com.zaap.app.data.local.datastore.UserSessionManager
 import com.zaap.app.presentation.viewmodel.AuthViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun getActivity(): Activity {
@@ -101,8 +106,22 @@ fun LoginScreen(
             web3Auth.setResultUrl(resultUri)
             web3Auth.initialize().whenComplete { _, error ->
                 if (error == null) {
-                    viewModel.setUser(web3Auth.getUserInfo())
-                    onLoginSuccess()
+                    val userInfo = web3Auth.getUserInfo()
+                    viewModel.setUser(userInfo)
+
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val privateKey = web3Auth.getPrivkey()
+                        UserSessionManager.saveUser(
+                            context = activity,
+                            email = userInfo?.email,
+                            name = userInfo?.name,
+                            profileImage = userInfo?.profileImage,
+                            privateKey = privateKey
+                        )
+                        withContext(Dispatchers.Main) {
+                            onLoginSuccess()
+                        }
+                    }
                 } else {
                     viewModel.setError(error.message)
                 }
@@ -112,9 +131,22 @@ fun LoginScreen(
 
     fun login(loginParams: LoginParams) {
         web3Auth.login(loginParams).whenComplete { result, error ->
-            if (error == null) {
-                viewModel.setUser(result.userInfo)
-                onLoginSuccess()
+            if (error == null && result.userInfo != null) {
+                val userInfo = result.userInfo
+                viewModel.setUser(userInfo)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val privateKey = web3Auth.getPrivkey()
+                    UserSessionManager.saveUser(
+                        context = activity,
+                        email = userInfo?.email,
+                        name = userInfo?.name,
+                        profileImage = userInfo?.profileImage,
+                        privateKey = privateKey
+                    )
+                    withContext(Dispatchers.Main) {
+                        onLoginSuccess()
+                    }
+                }
             } else {
                 viewModel.setError(error.message)
             }
