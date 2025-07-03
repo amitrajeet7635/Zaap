@@ -8,14 +8,11 @@ const { databases } = require('./appwriteClient');
 const { ID } = require('node-appwrite');
 
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://zaap-eight.vercel.app', 'https://zaap-backend.vercel.app'] 
-    : ['http://localhost:5173', 'http://localhost:3000'],
-  credentials: true,
+  origin: 'https://zaap-eight.vercel.app',  
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 200
+  credentials: true, 
 }));
+
 
 // Handle preflight requests explicitly
 app.options('*', cors());
