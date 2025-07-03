@@ -7,17 +7,50 @@ const app = express();
 const { databases } = require('./appwriteClient');
 const { ID } = require('node-appwrite');
 
-app.use(cors({
-  origin: 'https://zaap-eight.vercel.app',  
+// Enhanced CORS configuration for production
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'https://zaap-eight.vercel.app',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://zaap-backend.vercel.app' // Allow same domain
+    ];
+    
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true, 
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+  preflightContinue: false
+};
 
+app.use(cors(corsOptions));
 
-// Handle preflight requests explicitly
-app.options('*', cors());
+// Handle preflight requests explicitly for all routes
+app.options('*', cors(corsOptions));
 
-app.use(bodyParser.json());
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// Debug middleware for development
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.path}`, {
+      body: req.body,
+      headers: req.headers.origin
+    });
+    next();
+  });
+}
 
 const DB_ID = process.env.APPWRITE_DB_ID;
 const COLLECTION_ID = process.env.APPWRITE_CHILDREN_COLLECTION_ID;
@@ -261,9 +294,24 @@ app.post('/api/generate-qr', async (req, res) => {
 // POST /api/set-delegator - Set delegator address dynamically
 app.post('/api/set-delegator', (req, res) => {
   try {
+    console.log('Set delegator request received:', {
+      body: req.body,
+      headers: req.headers,
+      origin: req.headers.origin
+    });
+    
     const { delegator } = req.body;
     
+    if (!delegator) {
+      console.log('No delegator provided in request body');
+      return res.status(400).json({ 
+        error: 'Missing delegator address',
+        message: 'Delegator address is required in request body'
+      });
+    }
+    
     if (!isValidEthAddress(delegator)) {
+      console.log('Invalid delegator address:', delegator);
       return res.status(400).json({ 
         error: 'Invalid delegator address',
         message: 'Delegator address must be a valid Ethereum address'
@@ -271,7 +319,7 @@ app.post('/api/set-delegator', (req, res) => {
     }
     
     currentDelegator = delegator;
-    console.log('Delegator updated to:', delegator);
+    console.log('Delegator successfully updated to:', delegator);
     
     return res.json({ 
       success: true, 
@@ -458,6 +506,15 @@ app.get('/api/health', (req, res) => {
       'GET /api/delegator',
       'POST /api/set-delegator'
     ]
+  });
+});
+
+// Test endpoint for set-delegator functionality
+app.get('/api/test-delegator', (req, res) => {
+  res.json({
+    status: 'delegator endpoint ready',
+    currentDelegator: currentDelegator || 'not set',
+    message: 'Use POST /api/set-delegator with {"delegator": "0x..."} to set delegator'
   });
 });
 
