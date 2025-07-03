@@ -10,6 +10,10 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+app.get('/', (req, res) => {
+  res.send('Zaap Backend API is running');
+});
+
 // DEV: Clear all children (for testing)
 app.post('/api/children/clear', async (req, res) => {
   try {
