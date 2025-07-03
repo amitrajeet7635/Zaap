@@ -7,16 +7,17 @@ import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../components/Modal';
 
 interface Child {
-  id: string
-  name: string // alias
-  avatar: string
-  balance: number
-  weeklyLimit: number
-  monthlyLimit: number
-  spent: number
-  status: 'active' | 'restricted'
-  walletAddress: string
-  maxAmount: number
+  id?: string;
+  address?: string;
+  name?: string; // alias
+  alias?: string;
+  avatar?: string;
+  balance: number;
+  weeklyLimit: number;
+  spent: number;
+  status?: 'active' | 'restricted';
+  walletAddress?: string;
+  totalUSDC?: number;
 }
 
 interface Transaction {
@@ -51,27 +52,141 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
 
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [usdcBalance, setUsdcBalance] = useState<string>('0');
-  const [showQR, setShowQR] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   const [qrData, setQRData] = useState('');
   const [qrAmount, setQRAmount] = useState('');
-  const [showQRModal, setShowQRModal] = useState(false);
   const [qrTestResult, setQrTestResult] = useState<string | null>(null);
 
-  const updateChildLimit = (childId: string, type: 'weekly' | 'monthly', amount: number) => {
-    setChildren(prev => prev.map(child => 
-      child.id === childId 
-        ? { ...child, [type === 'weekly' ? 'weeklyLimit' : 'monthlyLimit']: amount }
-        : child
-    ))
-  }
+  // Connect wallet
+  const connectWallet = async () => {
+    if (!(window as any).ethereum) return;
+    const provider = new BrowserProvider((window as any).ethereum);
+    const accounts = await provider.send('eth_requestAccounts', []);
+    setWalletAddress(accounts[0]);
+  };
 
-  const toggleChildStatus = (childId: string) => {
-    setChildren(prev => prev.map(child => 
-      child.id === childId 
-        ? { ...child, status: child.status === 'active' ? 'restricted' : 'active' }
-        : child
-    ))
-  }
+  // Fetch USDC balance
+  useEffect(() => {
+    if (!walletAddress) return;
+    const fetchBalance = async () => {
+      const provider = new BrowserProvider((window as any).ethereum);
+      const usdc = new Contract(USDC_ADDRESS, USDC_ABI, provider);
+      const bal = await usdc.balanceOf(walletAddress);
+      setUsdcBalance(formatUnits(bal, 6));
+    };
+    fetchBalance();
+  }, [walletAddress]);
+
+  // Fetch children from backend (clear all on load)
+  useEffect(() => {
+    // Clear all children on backend for a fresh start
+    fetch('/api/children/clear', { method: 'POST' })
+      .then(() => setChildren([]));
+  }, []);
+    
+  // Update child alias/weeklyLimit/status
+  const handleUpdateChild = async (address: string, updates: Partial<Child>) => {
+    const res = await fetch(`/api/children/${address}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setChildren(prev => prev.map(c => (c.address === address || c.id === address) ? { ...c, ...updated } : c));
+    }
+  };
+
+  // Handle QR test connection
+  const handleTestConnect = async (qrData: string) => {
+    let parsed: any = {};
+    try {
+      parsed = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
+    } catch (e) {
+      setQrTestResult('❌ Invalid QR data');
+      return;
+    }
+    // Accept address from multiple keys
+    const childAddress = parsed.childAddress || parsed.address || parsed.walletAddress || parsed.id;
+    // Validate Ethereum address
+    const isValidEthAddress = (addr: string) => typeof addr === 'string' && /^0x[a-fA-F0-9]{40}$/.test(addr) && addr.length === 42;
+    if (!childAddress || !isValidEthAddress(childAddress)) {
+      setQrTestResult('❌ Invalid child address in QR');
+      return;
+    }
+    // Prepare payload
+    const payload = {
+      childAddress,
+      delegator: parsed.delegator,
+      token: parsed.token,
+      maxAmount: parsed.maxAmount,
+      timestamp: parsed.timestamp,
+      alias: parsed.alias,
+      weeklyLimit: parsed.weeklyLimit,
+      balance: parsed.balance
+    };
+    try {
+      const res = await fetch('/api/connect-child', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok && data.child) {
+        setQrTestResult('✅ Connection successful!');
+        setShowQRModal(false);
+        setQRAmount('');
+        // Fetch updated children list from backend
+        fetch('/api/children')
+          .then(r => r.json())
+          .then(childrenList => setChildren(childrenList));
+      } else {
+        setQrTestResult('❌ Connection failed: ' + (data?.error || 'Unknown error'));
+      }
+    } catch (e) {
+      setQrTestResult('❌ Connection failed: Network error');
+    }
+  };
+
+  // Editable alias
+  const updateChildAlias = (childId: string, newAlias: string) => {
+    setChildren(prev => prev.map(child =>
+      (child.id === childId || child.address === childId) ? { ...child, alias: newAlias } : child
+    ));
+    handleUpdateChild(childId, { alias: newAlias });
+  };
+
+  // Toggle child status
+  const toggleChildStatus = (childId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'restricted' : 'active';
+    setChildren(prev => prev.map(child =>
+      (child.id === childId || child.address === childId) ? { ...child, status: newStatus } : child
+    ));
+    handleUpdateChild(childId, { status: newStatus });
+  };
+
+  // Add this function to handle adding funds to a child
+  const handleAddFunds = async (child: Child) => {
+    const amountStr = prompt('Enter amount to add (USDC):', '');
+    if (!amountStr) return;
+    const amount = parseFloat(amountStr);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Invalid amount');
+      return;
+    }
+    const address = child.id || child.address || '';
+    const res = await fetch(`/api/children/${address}/add-funds`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount })
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setChildren(prev => prev.map(c => (c.id === address || c.address === address) ? { ...c, ...updated } : c));
+    } else {
+      alert('Failed to add funds');
+    }
+  };
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -103,122 +218,6 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
 
   const totalBalance = children.reduce((sum, child) => sum + child.balance, 0)
   const totalSpent = children.reduce((sum, child) => sum + child.spent, 0)
-
-  // Connect wallet
-  const connectWallet = async () => {
-    if (!(window as any).ethereum) return;
-    const provider = new BrowserProvider((window as any).ethereum);
-    const accounts = await provider.send('eth_requestAccounts', []);
-    setWalletAddress(accounts[0]);
-  };
-
-  // Fetch USDC balance
-  useEffect(() => {
-    if (!walletAddress) return;
-    const fetchBalance = async () => {
-      const provider = new BrowserProvider((window as any).ethereum);
-      const usdc = new Contract(USDC_ADDRESS, USDC_ABI, provider);
-      const bal = await usdc.balanceOf(walletAddress);
-      setUsdcBalance(formatUnits(bal, 6));
-    };
-    fetchBalance();
-  }, [walletAddress]);
-
-  // Fetch children from backend
-  useEffect(() => {
-    fetch('/api/children')
-      .then(res => res.json())
-      .then(setChildren)
-      .catch(() => setChildren([]));
-  }, []);
-
-  // Add new child after QR generation
-  // const handleAddChild = async (child: Partial<Child>) => {
-  //   const res = await fetch('/api/children', {
-  //     method: 'POST',
-  //     headers: { 'Content-Type': 'application/json' },
-  //     body: JSON.stringify(child)
-  //   });
-  //   if (res.ok) {
-  //     const newChild = await res.json();
-  //     setChildren(prev => [...prev, newChild]);
-  //   }
-  // };
-
-  // // Update child alias/limits
-  // const handleUpdateChild = async (address: string, updates: Partial<Child>) => {
-  //   const res = await fetch(`/api/children/${address}`, {
-  //     method: 'PUT',
-  //     headers: { 'Content-Type': 'application/json' },
-  //     body: JSON.stringify(updates)
-  //   });
-  //   if (res.ok) {
-  //     const updated = await res.json();
-  //     setChildren(prev => prev.map(c => c.walletAddress === address ? { ...c, ...updated } : c));
-  //     alert('Changes saved successfully!');
-  //   }
-  // };
-
-  // Generate QR data
-  const handleGenerateQR = () => {
-    if (!walletAddress || !qrAmount) return;
-    const qrPayload = {
-      delegator: walletAddress,
-      token: USDC_ADDRESS,
-      maxAmount: qrAmount,
-      timestamp: Date.now(),
-    };
-    setQRData(JSON.stringify(qrPayload));
-    setShowQR(true);
-    setShowQRModal(false); // reset modal state
-  };
-
-  // Test connect-child API
-  const handleTestConnect = async () => {
-    setQrTestResult(null);
-    try {
-      const res = await fetch('/api/connect-child', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: qrData
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setQrTestResult('✅ Connection successful!');
-      } else {
-        setQrTestResult('❌ Connection failed: ' + (data?.error || 'Unknown error'));
-      }
-    } catch (e) {
-      setQrTestResult('❌ Connection failed: Network error');
-    }
-  };
-
-  // Add this function to handle alias (name) change
-  const updateChildAlias = (childId: string, newAlias: string) => {
-    setChildren(prev => prev.map(child =>
-      child.id === childId ? { ...child, name: newAlias } : child
-    ));
-  };
-
-  // On QR modal confirm, add new child
-  // const handleConfirmAddChild = (alias: string) => {
-  //   // Simulate wallet address from QR (in real: get from backend or scan result)
-  //   const newWallet = '0x' + Math.random().toString(16).slice(2, 42).padEnd(40, '0');
-  //   handleAddChild({
-  //     walletAddress: newWallet,
-  //     name: alias, 
-  //     maxAmount: Number(qrAmount),
-  //     balance: 0,
-  //     weeklyLimit: 0,
-  //     monthlyLimit: 0,
-  //     spent: 0,
-  //     status: 'active',
-  //     avatar: '👤',
-  //     id: newWallet
-  //   });
-  //   setShowQR(false);
-  //   setQRAmount('');
-  // };
 
   return (
     <div className="min-h-screen bg-black font-inter">
@@ -341,156 +340,96 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
         {/* Children Tab */}
         {activeTab === 'children' && (
           <div className="space-y-6">
-            {/* QR Code Generation UI */}
-            <Card className="mb-6">
-              <h3 className="text-lg font-bold text-yellow-400 mb-2">Add New Child Account</h3>
-              <div className="flex flex-col md:flex-row md:items-end md:space-x-4 space-y-2 md:space-y-0">
-                <div className="flex flex-col">
-                  <label className="text-gray-300 text-sm mb-1">Max USDC for Child</label>
+            {/* Minimalist QR Code Generation Section - Top Right */}
+            <div className="flex w-full justify-end">
+              <div className="flex flex-col items-end w-full md:w-auto">
+                <h3 className="text-sm font-semibold text-yellow-400 mb-1 text-right">Add Child Account</h3>
+                <div className="flex flex-row items-center gap-2 w-full justify-end">
                   <input
                     type="number"
                     min="1"
                     step="1"
                     value={qrAmount}
                     onChange={e => setQRAmount(e.target.value)}
-                    className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 w-40"
-                    placeholder="e.g. 100"
+                    className="px-2 py-1 rounded bg-gray-800 text-white border border-yellow-400 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-400/30 transition w-24 text-sm font-semibold"
+                    placeholder="USDC"
                   />
+                  <Button size="sm" className="text-sm font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-none px-4 py-1 min-w-0" onClick={() => {
+                    if (!walletAddress || !qrAmount) return;
+                    const qrPayload = {
+                      delegator: walletAddress,
+                      token: USDC_ADDRESS,
+                      maxAmount: qrAmount,
+                      timestamp: Date.now(),
+                    };
+                    setQRData(JSON.stringify(qrPayload));
+                    setShowQRModal(true); // Open modal directly
+                    setQrTestResult(null);
+                  }}>
+                    Generate QR
+                  </Button>
                 </div>
-                <Button size="sm" className="mt-2 md:mt-0" onClick={handleGenerateQR}>
-                  Generate QR
-                </Button>
-                {showQR && (
-                  <div className="flex flex-col items-center ml-4 cursor-pointer" onClick={() => setShowQRModal(true)}>
-                    <QRCodeSVG value={qrData} size={120} />
-                    <span className="text-xs text-gray-400 mt-1">Click to enlarge</span>
-                    <Button size="sm" className="mt-2" onClick={() => setShowQR(false)}>
-                      Close
-                    </Button>
-                  </div>
-                )}
               </div>
-            </Card>
+            </div>
             {/* Children List */}
             {children.length === 0 && (
               <div className="text-gray-400 text-center py-12">No children added yet. Generate a QR to add a child account.</div>
             )}
             {children.map(child => (
-              <Card key={child.id} className="hover:border-yellow-400/50 transition-all duration-300">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl flex items-center justify-center text-2xl">
-                      {child.avatar}
-                    </div>
-                    <div>
-                      {/* Editable alias */}
-                      <input
-                        type="text"
-                        value={child.name}
-                        onChange={e => updateChildAlias(child.id, e.target.value)}
-                        placeholder="Set child alias"
-                        className="text-xl font-bold text-white bg-transparent border-b border-yellow-400 focus:outline-none focus:border-yellow-600 mb-1"
-                        style={{ minWidth: 120 }}
-                      />
-                      <p className="text-gray-400">Balance: {child.balance} USDC</p>
-                    </div>
+              <div key={child.id || child.address} className="flex items-center justify-between bg-gray-800/60 rounded-2xl p-8 mb-4 shadow-lg">
+                <div className="flex items-center space-x-8">
+                  <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center text-5xl shadow-md">
+                    {/* White male avatar emoji */}
+                    <span role="img" aria-label="boy" className="text-black">👦🏻</span>
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      child.status === 'active' 
-                        ? 'bg-green-400/20 text-green-400' 
+                  <input
+                    type="text"
+                    value={child.alias || ''}
+                    onChange={e => updateChildAlias(child.id || child.address || '', e.target.value)}
+                    placeholder="Set child alias"
+                    className="text-2xl font-bold text-white bg-transparent border-b border-yellow-400 focus:outline-none focus:border-yellow-600 px-2 py-1 rounded transition-all duration-200"
+                    style={{ minWidth: 120 }}
+                  />
+                </div>
+                <div className="flex flex-col items-end space-y-3">
+                  <div className="text-gray-400 text-base">Total USDC: <span className="text-yellow-400 font-bold text-lg">{child.totalUSDC || 0}</span></div>
+                  <div className="text-gray-400 text-base">Balance: <span className="text-green-400 font-bold text-lg">{child.balance}</span></div>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <span className="text-gray-400 text-base">Weekly Limit</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={child.weeklyLimit}
+                      onChange={e => handleUpdateChild(child.id || child.address || '', { weeklyLimit: parseInt(e.target.value) })}
+                      className="w-20 px-3 py-1 bg-gray-700 text-white rounded text-base border border-yellow-400"
+                    />
+                    <span className="text-yellow-400 text-base">USDC</span>
+                  </div>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <div className={`px-3 py-1 rounded-full text-base font-medium ${
+                      (child.status || 'active') === 'active'
+                        ? 'bg-green-400/20 text-green-400'
                         : 'bg-red-400/20 text-red-400'
                     }`}>
-                      {child.status === 'active' ? '🟢 Active' : '🔴 Restricted'}
+                      {(child.status || 'active') === 'active' ? '🟢 Active' : '🔴 Restricted'}
                     </div>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => toggleChildStatus(child.id)}
+                      onClick={() => toggleChildStatus(child.id || child.address || '', child.status || 'active')}
                     >
-                      {child.status === 'active' ? 'Restrict' : 'Activate'}
+                      {(child.status || 'active') === 'active' ? 'Restrict' : 'Activate'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="ml-2 bg-yellow-500 text-black font-bold"
+                      onClick={() => handleAddFunds(child)}
+                    >
+                      Add Funds
                     </Button>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Weekly Limit */}
-                  <div className="bg-gray-800/50 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-medium text-gray-300">Weekly Limit</h4>
-                      <span className="text-yellow-400 font-bold">{child.weeklyLimit} USDC</span>
-                    </div>
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm text-gray-400 mb-2">
-                        <span>Spent This Week</span>
-                        <span>{child.spent} USDC</span>
-                      </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-yellow-400 to-yellow-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${Math.min((child.spent / child.weeklyLimit) * 100, 100)}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="range"
-                        min="10"
-                        max="2000"
-                        value={child.weeklyLimit}
-                        onChange={(e) => updateChildLimit(child.id, 'weekly', parseInt(e.target.value))}
-                        className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-                      />
-                      <input
-                        type="number"
-                        value={child.weeklyLimit}
-                        onChange={(e) => updateChildLimit(child.id, 'weekly', parseInt(e.target.value))}
-                        className="w-16 px-2 py-1 bg-gray-700 text-white rounded text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Monthly Limit */}
-                  <div className="bg-gray-800/50 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-medium text-gray-300">Monthly Limit</h4>
-                      <span className="text-yellow-400 font-bold">{child.monthlyLimit} USDC</span>
-                    </div>
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm text-gray-400 mb-2">
-                        <span>Spent This Month</span>
-                        <span>{child.spent} USDC</span>
-                      </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${Math.min((child.spent / child.monthlyLimit) * 100, 100)}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="range"
-                        min="50"
-                        max="8000"
-                        value={child.monthlyLimit}
-                        onChange={(e) => updateChildLimit(child.id, 'monthly', parseInt(e.target.value))}
-                        className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-                      />
-                      <input
-                        type="number"
-                        value={child.monthlyLimit}
-                        onChange={(e) => updateChildLimit(child.id, 'monthly', parseInt(e.target.value))}
-                        className="w-16 px-2 py-1 bg-gray-700 text-white rounded text-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex justify-end mt-4">
-                  <Button size="sm" onClick={() => {/* TODO: Save/confirm changes for this child */}}>
-                    Confirm Changes
-                  </Button>
-                </div>
-              </Card>
+              </div>
             ))}
           </div>
         )}
@@ -579,7 +518,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
             <h2 className="text-xl font-bold text-yellow-400 mb-4">Child Account QR</h2>
             <QRCodeSVG value={qrData} size={200} />
             <div className="mt-4 w-full flex flex-col items-center">
-              <Button size="sm" className="w-full" onClick={handleTestConnect}>
+              <Button size="sm" className="w-full" onClick={() => handleTestConnect(qrData)}>
                 Test Connect
               </Button>
               {qrTestResult && (
