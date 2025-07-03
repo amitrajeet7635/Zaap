@@ -1,6 +1,6 @@
 <div align="center">
   <h3><strong>Zaap</strong></h3>
-  No cash. No cards. Just Zapp. Built on Web3. Crafted for your tomorrow.
+  No cash. No cards. Just Zaap. Built on Web3. Crafted for your tomorrow.
 </div>
 
 <br/>
