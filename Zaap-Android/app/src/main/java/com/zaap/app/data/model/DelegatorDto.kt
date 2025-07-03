@@ -3,7 +3,6 @@ package com.zaap.app.data.model
 
 data class ConnectChildRequest(
     val childAddress: String,
-    val walletAddress: String,
     val delegator: String,
     val token: String,
     val maxAmount: Long,

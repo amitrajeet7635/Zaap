@@ -4,11 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zaap.app.data.model.DelegatorDto
 import com.zaap.app.data.repository.ZaapRepositoryImpl
+import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+@HiltViewModel
 class ConnectToParentViewModel @Inject constructor(
     private val repository: ZaapRepositoryImpl
 ) : ViewModel() {
@@ -34,7 +36,6 @@ class ConnectToParentViewModel @Inject constructor(
 
     fun connectChild(
         childAddress: String,
-        walletAddress: String,
         delegator: String,
         token: String,
         maxAmount: Long,
@@ -46,7 +47,6 @@ class ConnectToParentViewModel @Inject constructor(
             try {
                 val success = repository.connectChild(
                     childAddress,
-                    walletAddress,
                     delegator,
                     token,
                     maxAmount,

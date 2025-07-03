@@ -35,7 +35,7 @@ fun Navigation(
 
     LaunchedEffect(Unit) {
         val isLoggedIn = UserSessionManager.isLoggedIn(context)
-        startDestination = if (isLoggedIn) "Home" else "Login"
+        startDestination = if (isLoggedIn) "ParentConnect" else "Login"
     }
 
     startDestination?.let {

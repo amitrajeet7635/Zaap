@@ -14,7 +14,6 @@ class ZaapRepositoryImpl @Inject constructor(private val api: ZaapBackendAPI) {
 
     suspend fun connectChild(
         childAddress: String,
-        walletAddress: String,
         delegator: String,
         token: String,
         maxAmount: Long,
@@ -25,7 +24,6 @@ class ZaapRepositoryImpl @Inject constructor(private val api: ZaapBackendAPI) {
         try {
             val request = ConnectChildRequest(
                 childAddress,
-                walletAddress,
                 delegator,
                 token,
                 maxAmount,

@@ -14,6 +14,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,6 +25,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.gson.Gson
+import com.zaap.app.data.local.datastore.UserData
+import com.zaap.app.data.local.datastore.UserSessionManager
 import com.zaap.app.data.model.ConnectParentQRScanData
 import com.zaap.app.presentation.modules.Scanner
 import com.zaap.app.presentation.viewmodel.ConnectToParentViewModel
@@ -35,7 +38,7 @@ fun ConnectToParentQRScan(modifier: Modifier = Modifier, viewModel: ConnectToPar
     val context = LocalContext.current
     val connectStatus by viewModel.connectStatus.collectAsState()
     val error by viewModel.error.collectAsState()
-    val childAddress = remember { mutableStateOf("0xTEMPORARY_CHILD_ADDRESS") }
+
 
     LaunchedEffect(connectStatus) {
         when (connectStatus) {
@@ -48,6 +51,15 @@ fun ConnectToParentQRScan(modifier: Modifier = Modifier, viewModel: ConnectToPar
             null -> Unit
         }
     }
+
+    var userData by remember { mutableStateOf<UserData?>(null) }
+
+    LaunchedEffect(Unit) {
+        userData = UserSessionManager.getUser(context)
+    }
+
+    val childAddress = userData?.publicKey.toString()
+
 
     Column(modifier = modifier.fillMaxSize()) {
         Box(
@@ -78,10 +90,9 @@ fun ConnectToParentQRScan(modifier: Modifier = Modifier, viewModel: ConnectToPar
 
                 try {
                     val qrData = Gson().fromJson(result, ConnectParentQRScanData::class.java)
-                    val address = childAddress.value
+                    println("Delegator - ${qrData.delegator}")
                     viewModel.connectChild(
-                        childAddress = address,
-                        walletAddress = qrData.walletAddress,
+                        childAddress = childAddress,
                         delegator = qrData.delegator,
                         token = qrData.token,
                         maxAmount = qrData.maxAmount.toLong(),
@@ -90,6 +101,7 @@ fun ConnectToParentQRScan(modifier: Modifier = Modifier, viewModel: ConnectToPar
                         timestamp = qrData.timestamp
                     )
                 } catch (e: Exception) {
+                    println(e.message)
                     Toast.makeText(context, "Invalid QR code", Toast.LENGTH_SHORT).show()
                 }
             }
