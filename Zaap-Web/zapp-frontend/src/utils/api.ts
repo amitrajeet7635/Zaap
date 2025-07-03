@@ -1,5 +1,5 @@
 // API configuration utility for local development
-const API_BASE_URL = 'http://localhost:4000'; // Adjust this URL as needed for your local setup
+const API_BASE_URL = 'https://zaap-backend.vercel.app'; // Adjust this URL as needed for your local setup
 
 export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   // Normalize URL to avoid double slashes

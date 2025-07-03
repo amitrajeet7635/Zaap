@@ -1,7 +1,7 @@
 // Test script to verify the complete Circle integration flow
 // Run this after setting up Circle credentials
 
-const API_BASE = 'http://localhost:4000'; // Adjust this URL as needed for your local setup
+const API_BASE = 'https://zaap-backend.vercel.app'; // Adjust this URL as needed for your local setup
 
 async function testCompleteFlow() {
   console.log('🚀 Testing Complete Zaap + Circle Integration Flow\n');
