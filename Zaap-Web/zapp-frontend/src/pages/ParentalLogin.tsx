@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { createDelegation } from '@metamask/delegation-toolkit';
 import { switchOrAddSepoliaChain } from '../utils/switchOrAddEthChain';
 import { getMetaMaskSmartAccount } from '../utils/getMetamaskSmartAccounts';
 
@@ -18,11 +17,6 @@ function getEthereum() {
 interface ParentalLoginProps {
   onAuthenticated: () => void;
   onNavigateBack: () => void;
-}
-
-// Extend the Delegation type to allow delegateAddress for local use
-interface ExtendedDelegation extends ReturnType<typeof createDelegation> {
-  delegateAddress: string;
 }
 
 export default function ParentalLogin({ onAuthenticated, onNavigateBack }: ParentalLoginProps) {
@@ -59,40 +53,34 @@ export default function ParentalLogin({ onAuthenticated, onNavigateBack }: Paren
       setStatus('Setting up MetaMask Smart Account...');
       const { smartAccount } = await getMetaMaskSmartAccount(address);
 
-      // Create delegation FROM EOA TO smart account (or to another EOA)
-      setStatus('Creating delegation...');
-      let delegation: ExtendedDelegation = createDelegation({
-        from: address, // EOA signs
-        to: smartAccount.address, // delegate to smart account
-        caveats: [],
-      }) as ExtendedDelegation;
-      // Add delegate account address explicitly to the delegation data
-      delegation = {
-        ...delegation,
-        delegateAddress: smartAccount.address,
-      };
+      // Store the delegator address for the session
+      localStorage.setItem('delegatorAddress', address);
+      localStorage.setItem('smartAccountAddress', smartAccount.address);
 
-      // Sign delegation using EOA (MetaMask)
-      setStatus('Requesting signature from MetaMask...');
-      const signature = await ethereum.request({
-        method: 'personal_sign',
-        params: [JSON.stringify(delegation), address],
-      });
-      const signedDelegation = { ...delegation, signature };
+      // Set delegator address in backend dynamically
+      setStatus('Setting up delegator...');
+      try {
+        const delegatorResponse = await fetch('/api/set-delegator', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ delegator: address })
+        });
+        
+        if (!delegatorResponse.ok) {
+          console.warn('Failed to set delegator in backend, continuing...');
+        }
+      } catch (error) {
+        console.warn('Failed to set delegator in backend:', error);
+      }
 
-      console.log('Signed Delegation:', signedDelegation);
-      setStatus(`Delegation successful for ${address}`);
-
-      // Mock Circle wallet creation after delegation
-      setStatus('Creating Circle Wallet...');
-      await new Promise(res => setTimeout(res, 1200)); // Simulate async wallet creation
-      setStatus('Circle Wallet created! Redirecting...');
+      setStatus(`Successfully connected ${address}`);
+      console.log('Connected wallet:', { address, smartAccount: smartAccount.address });
 
       setTimeout(() => {
         onAuthenticated();
       }, 1500);
     } catch (err: any) {
-      console.error('Delegation Error:', err);
+      console.error('Connection Error:', err);
       setStatus('Error: ' + (err && err.message ? err.message : 'Unknown error'));
     } finally {
       setLoading(false);
