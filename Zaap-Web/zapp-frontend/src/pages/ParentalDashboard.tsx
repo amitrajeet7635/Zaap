@@ -79,6 +79,17 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     const accounts = await provider.send('eth_requestAccounts', []);
     setWalletAddress(accounts[0]);
     localStorage.setItem('delegatorAddress', accounts[0]);
+    
+    // Set delegator address in backend dynamically
+    try {
+      await fetch('/api/set-delegator', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delegator: accounts[0] })
+      });
+    } catch (error) {
+      console.warn('Failed to set delegator in backend:', error);
+    }
   };
 
   // Fetch USDC balance

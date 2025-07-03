@@ -57,6 +57,22 @@ export default function ParentalLogin({ onAuthenticated, onNavigateBack }: Paren
       localStorage.setItem('delegatorAddress', address);
       localStorage.setItem('smartAccountAddress', smartAccount.address);
 
+      // Set delegator address in backend dynamically
+      setStatus('Setting up delegator...');
+      try {
+        const delegatorResponse = await fetch('/api/set-delegator', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ delegator: address })
+        });
+        
+        if (!delegatorResponse.ok) {
+          console.warn('Failed to set delegator in backend, continuing...');
+        }
+      } catch (error) {
+        console.warn('Failed to set delegator in backend:', error);
+      }
+
       setStatus(`Successfully connected ${address}`);
       console.log('Connected wallet:', { address, smartAccount: smartAccount.address });
 

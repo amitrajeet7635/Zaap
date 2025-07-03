@@ -10,9 +10,12 @@ const { ID } = require('node-appwrite');
 app.use(cors());
 app.use(bodyParser.json());
 
-const DB_ID = process.env.APPWRITE_DB_ID || 'zaap-database';
-const COLLECTION_ID = process.env.APPWRITE_CHILDREN_COLLECTION_ID || 'children';
-const USDC_ADDRESS = process.env.USDC_ADDRESS || '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238';
+const DB_ID = process.env.APPWRITE_DB_ID ;
+const COLLECTION_ID = process.env.APPWRITE_CHILDREN_COLLECTION_ID ;
+const USDC_ADDRESS = process.env.USDC_ADDRESS ;
+
+// Dynamic delegator storage instead of hardcoded env var
+let currentDelegator = null;
 
 // Helper: Validate Ethereum address
 function isValidEthAddress(addr) {
@@ -185,8 +188,14 @@ app.post('/api/generate-qr', async (req, res) => {
   try {
     const { delegator, maxAmount, alias } = req.body;
     
-    if (!isValidEthAddress(delegator)) {
-      return res.status(400).json({ error: 'Invalid delegator address' });
+    // Use provided delegator or current stored delegator
+    const finalDelegator = delegator || currentDelegator;
+    
+    if (!isValidEthAddress(finalDelegator)) {
+      return res.status(400).json({ 
+        error: 'Invalid or missing delegator address',
+        message: 'Please provide a valid delegator address or set one using /api/set-delegator'
+      });
     }
     
     const max = Number(maxAmount);
@@ -196,9 +205,15 @@ app.post('/api/generate-qr', async (req, res) => {
     
     const weeklyLimit = Math.floor(max * 0.2);
     
+    // Update current delegator if provided
+    if (delegator && delegator !== currentDelegator) {
+      currentDelegator = delegator;
+      console.log('Delegator updated to:', delegator);
+    }
+    
     // Create QR payload with delegation restrictions
     const qrPayload = {
-      delegator,
+      delegator: finalDelegator,
       token: USDC_ADDRESS, // Restriction 1: Only USDC
       maxAmount: max,
       weeklyLimit, // Restriction 2: 20% weekly limit
@@ -220,19 +235,42 @@ app.post('/api/generate-qr', async (req, res) => {
   }
 });
 
-// GET /api/delegator - Retrieve the delegator (parent) account address
+// POST /api/set-delegator - Set delegator address dynamically
+app.post('/api/set-delegator', (req, res) => {
+  try {
+    const { delegator } = req.body;
+    
+    if (!isValidEthAddress(delegator)) {
+      return res.status(400).json({ 
+        error: 'Invalid delegator address',
+        message: 'Delegator address must be a valid Ethereum address'
+      });
+    }
+    
+    currentDelegator = delegator;
+    console.log('Delegator updated to:', delegator);
+    
+    return res.json({ 
+      success: true, 
+      delegator,
+      message: 'Delegator address updated successfully'
+    });
+  } catch (err) {
+    console.error('Set delegator error:', err);
+    return res.status(500).json({ error: 'Failed to set delegator' });
+  }
+});
+
+// GET /api/delegator - Retrieve the current delegator address
 app.get('/api/delegator', (req, res) => {
-  // In production, this could come from authenticated session or database
-  // For now, return the stored environment variable or first connected account
-  const delegator = process.env.DELEGATOR_ADDRESS;
-  if (!delegator) {
+  if (!currentDelegator) {
     return res.status(404).json({ 
-      error: 'Delegator address not configured',
-      message: 'Please set DELEGATOR_ADDRESS in environment variables' 
+      error: 'No delegator set',
+      message: 'Please set delegator address first using POST /api/set-delegator' 
     });
   }
   return res.json({ 
-    delegator,
+    delegator: currentDelegator,
     success: true 
   });
 });
