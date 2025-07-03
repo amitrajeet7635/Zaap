@@ -54,6 +54,7 @@ import com.web3auth.core.types.Provider
 import com.web3auth.core.types.Web3AuthOptions
 import com.zaap.app.BuildConfig
 import com.zaap.app.R
+import com.zaap.app.core.utils.Web3Utils
 import com.zaap.app.data.local.datastore.UserSessionManager
 import com.zaap.app.presentation.viewmodel.AuthViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -111,12 +112,14 @@ fun LoginScreen(
 
                     CoroutineScope(Dispatchers.IO).launch {
                         val privateKey = web3Auth.getPrivkey()
+                        val publicKey = Web3Utils.getPublicAddressFromPrivateKey(privateKey)
                         UserSessionManager.saveUser(
                             context = activity,
                             email = userInfo?.email,
                             name = userInfo?.name,
                             profileImage = userInfo?.profileImage,
-                            privateKey = privateKey
+                            privateKey = privateKey,
+                            publicKey = publicKey
                         )
                         withContext(Dispatchers.Main) {
                             onLoginSuccess()
@@ -136,12 +139,14 @@ fun LoginScreen(
                 viewModel.setUser(userInfo)
                 CoroutineScope(Dispatchers.IO).launch {
                     val privateKey = web3Auth.getPrivkey()
+                    val publicKey = Web3Utils.getPublicAddressFromPrivateKey(privateKey)
                     UserSessionManager.saveUser(
                         context = activity,
                         email = userInfo?.email,
                         name = userInfo?.name,
                         profileImage = userInfo?.profileImage,
-                        privateKey = privateKey
+                        privateKey = privateKey,
+                        publicKey = publicKey
                     )
                     withContext(Dispatchers.Main) {
                         onLoginSuccess()
@@ -243,8 +248,10 @@ fun LoginScreen(
             Button(
                 onClick = {
                     if (email.isNotBlank()) login(
-                        LoginParams(Provider.EMAIL_PASSWORDLESS,
-                        extraLoginOptions = ExtraLoginOptions(login_hint = email))
+                        LoginParams(
+                            Provider.EMAIL_PASSWORDLESS,
+                            extraLoginOptions = ExtraLoginOptions(login_hint = email)
+                        )
                     )
                 },
                 modifier = Modifier

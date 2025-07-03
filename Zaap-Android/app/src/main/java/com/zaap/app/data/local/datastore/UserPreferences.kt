@@ -12,4 +12,5 @@ object UserPreferencesKeys {
     val NAME = stringPreferencesKey("name")
     val PROFILE_IMAGE = stringPreferencesKey("profile_image")
     val PRIVATE_KEY = stringPreferencesKey("private_key")
+    val PUBLIC_KEY = stringPreferencesKey("public_key")
 }

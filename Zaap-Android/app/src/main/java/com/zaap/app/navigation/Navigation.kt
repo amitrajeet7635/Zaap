@@ -34,7 +34,7 @@ fun Navigation(
 
     LaunchedEffect(Unit) {
         val isLoggedIn = UserSessionManager.isLoggedIn(context)
-        startDestination = if (isLoggedIn) "Home" else "Login"
+        startDestination = if (isLoggedIn) "ParentConnect" else "Login"
     }
 
     startDestination?.let {
@@ -61,7 +61,7 @@ fun Navigation(
                 LoginScreen(
                     resultUri = deepLinkUri,
                     onLoginSuccess = {
-                        navHostController.navigate("Home") {
+                        navHostController.navigate("ParentConnect") {
                             popUpTo("Login") {
                                 inclusive = true
                             }

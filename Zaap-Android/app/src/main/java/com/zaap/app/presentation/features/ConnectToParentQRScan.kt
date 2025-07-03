@@ -1,5 +1,6 @@
 package com.zaap.app.presentation.features
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,18 +9,45 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.gson.Gson
+import com.zaap.app.data.model.ConnectParentQRScanData
 import com.zaap.app.presentation.modules.Scanner
+import com.zaap.app.presentation.viewmodel.ConnectToParentViewModel
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun ConnectToParentQRScan(modifier: Modifier = Modifier) {
+fun ConnectToParentQRScan(modifier: Modifier = Modifier, viewModel: ConnectToParentViewModel = hiltViewModel()) {
+
+    val context = LocalContext.current
+    val connectStatus by viewModel.connectStatus.collectAsState()
+    val error by viewModel.error.collectAsState()
+    val childAddress = remember { mutableStateOf("0xTEMPORARY_CHILD_ADDRESS") }
+
+    LaunchedEffect(connectStatus) {
+        when (connectStatus) {
+            true -> {
+                Toast.makeText(context, "Child connected successfully", Toast.LENGTH_SHORT).show()
+            }
+            false -> {
+                Toast.makeText(context, error ?: "Failed to connect child", Toast.LENGTH_SHORT).show()
+            }
+            null -> Unit
+        }
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         Box(
@@ -47,6 +75,23 @@ fun ConnectToParentQRScan(modifier: Modifier = Modifier) {
         ) {
             Scanner { result ->
                 println("QR Result: $result")
+
+                try {
+                    val qrData = Gson().fromJson(result, ConnectParentQRScanData::class.java)
+                    val address = childAddress.value
+                    viewModel.connectChild(
+                        childAddress = address,
+                        walletAddress = qrData.walletAddress,
+                        delegator = qrData.delegator,
+                        token = qrData.token,
+                        maxAmount = qrData.maxAmount.toLong(),
+                        weeklyLimit = qrData.weeklyLimit,
+                        alias = qrData.alias,
+                        timestamp = qrData.timestamp
+                    )
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Invalid QR code", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
