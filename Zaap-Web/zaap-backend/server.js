@@ -9,7 +9,7 @@ const { ID } = require('node-appwrite');
 
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL, 'https://your-frontend-domain.vercel.app'] 
+    ? [process.env.FRONTEND_URL, 'https://zaap-eight.vercel.app/'] 
     : ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true
 }));
