@@ -1,7 +1,7 @@
 <<<<<<< HEAD
 <div align="center">
   <h3><strong>Zaap</strong></h3>
-  No cash. No cards. Just Zapp. Built on Web3. Crafted for your tomorrow.
+  No cash. No cards. Just Zaap. Built on Web3. Crafted for your tomorrow.
 </div>
 
 <br/>
@@ -25,7 +25,7 @@
 <table align="left">
   <tr>
     <td><img src="https://github.com/Anmol-Baranwal/Cool-GIFs-For-GitHub/assets/74038190/7bb1e704-6026-48f9-8435-2f4d40101348" width="50"></td>
-    <td><h4>Built by the Zapp Squad</h4></td>
+    <td><h4>Built by the Zaap Squad</h4></td>
   </tr>
   <tr>
     <td colspan="2" align="center">

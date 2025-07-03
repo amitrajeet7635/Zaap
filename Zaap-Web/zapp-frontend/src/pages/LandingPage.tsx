@@ -80,7 +80,7 @@ export default function LandingPage({ onNavigateToLogin }: LandingPageProps) {
 
         {/* Features Grid */}
         <div className="mb-16">
-          <h3 className="text-3xl font-bold text-center text-white mb-3">Why Choose Zapp?</h3>
+          <h3 className="text-3xl font-bold text-center text-white mb-3">Why Choose Zaap?</h3>
           <p className="text-center text-gray-400 mb-10 text-base">Built for the Web3 generation</p>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -97,7 +97,7 @@ export default function LandingPage({ onNavigateToLogin }: LandingPageProps) {
         {/* How it Works Section */}
         <Card className="mb-16 bg-gradient-to-br from-gray-900 to-black border-yellow-400/20 overflow-hidden">
           <div className="text-center mb-16">
-            <h3 className="text-4xl font-bold gradient-text mb-4">How Zapp Works</h3>
+            <h3 className="text-4xl font-bold gradient-text mb-4">How Zaap Works</h3>
             <p className="text-gray-300 text-lg max-w-2xl mx-auto leading-relaxed">
               Transform your family's financial experience in three simple steps
             </p>
@@ -238,10 +238,10 @@ export default function LandingPage({ onNavigateToLogin }: LandingPageProps) {
                 <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
               </svg>
             </div>
-            <h4 className="text-2xl font-bold gradient-text">Zapp</h4>
+            <h4 className="text-2xl font-bold gradient-text">Zaap</h4>
           </div>
           <p className="text-gray-400 mb-4">Digital Wallet for Smart Teens</p>
-          <p className="text-gray-600 text-sm mt-6">© 2024 Zapp. All rights reserved.</p>
+          <p className="text-gray-600 text-sm mt-6">© 2024 Zaap. All rights reserved.</p>
         </footer>
       </main>
     </div>
