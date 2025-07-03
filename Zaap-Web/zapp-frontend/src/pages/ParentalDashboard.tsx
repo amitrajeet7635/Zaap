@@ -5,6 +5,7 @@ import Card from '../components/Card'
 import Button from '../components/Button'
 import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../components/Modal';
+import { apiCall } from '../utils/api';
 
 interface Child {
   id?: string;
@@ -82,9 +83,8 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     
     // Set delegator address in backend dynamically
     try {
-      await fetch('/api/set-delegator', {
+      await apiCall('/api/set-delegator', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ delegator: accounts[0] })
       });
     } catch (error) {
@@ -108,8 +108,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
   useEffect(() => {
     const fetchChildren = async () => {
       try {
-        const response = await fetch('/api/children');
-        const childrenList = await response.json();
+        const childrenList = await apiCall('/api/children');
         // Ensure we always have an array, even if response is not ok
         setChildren(Array.isArray(childrenList) ? childrenList : []);
       } catch (error) {
@@ -143,9 +142,8 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
 
     setLoading(true);
     try {
-      const response = await fetch('/api/generate-qr', {
+      const data = await apiCall('/api/generate-qr', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           delegator: walletAddress,
           maxAmount: qrAmount,
@@ -153,8 +151,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
         })
       });
 
-      const data = await response.json();
-      if (response.ok && data.qrData) {
+      if (data.qrData) {
         setQRData(data.qrData);
         setShowQRModal(true);
         setQrTestResult(null);

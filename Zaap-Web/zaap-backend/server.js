@@ -7,12 +7,26 @@ const app = express();
 const { databases } = require('./appwriteClient');
 const { ID } = require('node-appwrite');
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? [process.env.FRONTEND_URL, 'https://your-frontend-domain.vercel.app'] 
+    : ['http://localhost:5173', 'http://localhost:3000'],
+  credentials: true
+}));
 app.use(bodyParser.json());
 
-const DB_ID = process.env.APPWRITE_DB_ID ;
-const COLLECTION_ID = process.env.APPWRITE_CHILDREN_COLLECTION_ID ;
-const USDC_ADDRESS = process.env.USDC_ADDRESS ;
+const DB_ID = process.env.APPWRITE_DB_ID;
+const COLLECTION_ID = process.env.APPWRITE_CHILDREN_COLLECTION_ID;
+const USDC_ADDRESS = process.env.USDC_ADDRESS;
+
+// Log environment variables for debugging (without sensitive data)
+console.log('Environment check:', {
+  NODE_ENV: process.env.NODE_ENV,
+  DB_ID: DB_ID ? 'set' : 'missing',
+  COLLECTION_ID: COLLECTION_ID ? 'set' : 'missing', 
+  USDC_ADDRESS: USDC_ADDRESS ? 'set' : 'missing',
+  PORT: process.env.PORT || 4000
+});
 
 // Dynamic delegator storage instead of hardcoded env var
 let currentDelegator = null;
@@ -413,6 +427,29 @@ app.post('/api/children/:address/add-funds', async (req, res) => {
     console.error('Add funds error:', err);
     return res.status(500).json({ error: 'Failed to add funds' });
   }
+});
+
+// Health check endpoints for debugging deployment
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || 'development'
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'API healthy', 
+    timestamp: new Date().toISOString(),
+    endpoints: [
+      'GET /api/children',
+      'POST /api/connect-child', 
+      'POST /api/generate-qr',
+      'GET /api/delegator',
+      'POST /api/set-delegator'
+    ]
+  });
 });
 
 
