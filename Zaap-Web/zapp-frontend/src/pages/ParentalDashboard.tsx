@@ -46,7 +46,7 @@ const USDC_ABI = [
 export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'children' | 'transactions'>('overview')
   
-  // Mock data - replace with real data from your API
+  // Real data from your API
   const [children, setChildren] = useState<Child[]>([])
   const [transactions] = useState<Transaction[]>([])
 
@@ -55,7 +55,22 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrData, setQRData] = useState('');
   const [qrAmount, setQRAmount] = useState('');
+  const [qrAlias, setQRAlias] = useState('');
+  const [loading, setLoading] = useState(false);
   const [qrTestResult, setQrTestResult] = useState<string | null>(null);
+
+  // Safe wrapper to ensure children is always an array
+  const safeChildren = Array.isArray(children) ? children : [];
+
+  // Initialize from stored delegator address
+  useEffect(() => {
+    const storedAddress = localStorage.getItem('delegatorAddress');
+    if (storedAddress) {
+      setWalletAddress(storedAddress);
+    } else {
+      connectWallet(); // Auto-connect if not stored
+    }
+  }, []);
 
   // Connect wallet
   const connectWallet = async () => {
@@ -63,6 +78,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     const provider = new BrowserProvider((window as any).ethereum);
     const accounts = await provider.send('eth_requestAccounts', []);
     setWalletAddress(accounts[0]);
+    localStorage.setItem('delegatorAddress', accounts[0]);
   };
 
   // Fetch USDC balance
@@ -77,11 +93,21 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     fetchBalance();
   }, [walletAddress]);
 
-  // Fetch children from backend (clear all on load)
+  // Fetch children from backend on load
   useEffect(() => {
-    // Clear all children on backend for a fresh start
-    fetch('/api/children/clear', { method: 'POST' })
-      .then(() => setChildren([]));
+    const fetchChildren = async () => {
+      try {
+        const response = await fetch('/api/children');
+        const childrenList = await response.json();
+        // Ensure we always have an array, even if response is not ok
+        setChildren(Array.isArray(childrenList) ? childrenList : []);
+      } catch (error) {
+        console.error('Error fetching children:', error);
+        setChildren([]); // Set empty array on error
+      }
+    };
+    
+    fetchChildren();
   }, []);
     
   // Update child alias/weeklyLimit/status
@@ -97,54 +123,38 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     }
   };
 
-  // Handle QR test connection
-  const handleTestConnect = async (qrData: string) => {
-    let parsed: any = {};
-    try {
-      parsed = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
-    } catch (e) {
-      setQrTestResult('❌ Invalid QR data');
+  // Generate QR code with delegation restrictions
+  const generateQRCode = async () => {
+    if (!walletAddress || !qrAmount) {
+      alert('Please connect your wallet and enter an amount');
       return;
     }
-    // Accept address from multiple keys
-    const childAddress = parsed.childAddress || parsed.address || parsed.walletAddress || parsed.id;
-    // Validate Ethereum address
-    const isValidEthAddress = (addr: string) => typeof addr === 'string' && /^0x[a-fA-F0-9]{40}$/.test(addr) && addr.length === 42;
-    if (!childAddress || !isValidEthAddress(childAddress)) {
-      setQrTestResult('❌ Invalid child address in QR');
-      return;
-    }
-    // Prepare payload
-    const payload = {
-      childAddress,
-      delegator: parsed.delegator,
-      token: parsed.token,
-      maxAmount: parsed.maxAmount,
-      timestamp: parsed.timestamp,
-      alias: parsed.alias,
-      weeklyLimit: parsed.weeklyLimit,
-      balance: parsed.balance
-    };
+
+    setLoading(true);
     try {
-      const res = await fetch('/api/connect-child', {
+      const response = await fetch('/api/generate-qr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          delegator: walletAddress,
+          maxAmount: qrAmount,
+          alias: qrAlias || '', // Optional alias for the child
+        })
       });
-      const data = await res.json();
-      if (res.ok && data.child) {
-        setQrTestResult('✅ Connection successful!');
-        setShowQRModal(false);
-        setQRAmount('');
-        // Fetch updated children list from backend
-        fetch('/api/children')
-          .then(r => r.json())
-          .then(childrenList => setChildren(childrenList));
+
+      const data = await response.json();
+      if (response.ok && data.qrData) {
+        setQRData(data.qrData);
+        setShowQRModal(true);
+        setQrTestResult(null);
       } else {
-        setQrTestResult('❌ Connection failed: ' + (data?.error || 'Unknown error'));
+        alert('Failed to generate QR: ' + (data.error || 'Unknown error'));
       }
-    } catch (e) {
-      setQrTestResult('❌ Connection failed: Network error');
+    } catch (error) {
+      console.error('QR generation error:', error);
+      alert('Failed to generate QR: Network error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -216,8 +226,8 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     }
   }
 
-  const totalBalance = children.reduce((sum, child) => sum + child.balance, 0)
-  const totalSpent = children.reduce((sum, child) => sum + child.spent, 0)
+  const totalBalance = safeChildren.reduce((sum, child) => sum + (child.balance || 0), 0)
+  const totalSpent = safeChildren.reduce((sum, child) => sum + (child.spent || 0), 0)
 
   return (
     <div className="min-h-screen bg-black font-inter">
@@ -293,7 +303,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                     <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-blue-400">{children.length}</h3>
+                <h3 className="text-2xl font-bold text-blue-400">{safeChildren.length}</h3>
                 <p className="text-gray-300 text-sm">Active Children</p>
               </Card>
 
@@ -346,6 +356,13 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                 <h3 className="text-sm font-semibold text-yellow-400 mb-1 text-right">Add Child Account</h3>
                 <div className="flex flex-row items-center gap-2 w-full justify-end">
                   <input
+                    type="text"
+                    value={qrAlias}
+                    onChange={e => setQRAlias(e.target.value)}
+                    className="px-2 py-1 rounded bg-gray-800 text-white border border-gray-600 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-400/30 transition w-20 text-sm"
+                    placeholder="Name"
+                  />
+                  <input
                     type="number"
                     min="1"
                     step="1"
@@ -354,28 +371,22 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                     className="px-2 py-1 rounded bg-gray-800 text-white border border-yellow-400 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-400/30 transition w-24 text-sm font-semibold"
                     placeholder="USDC"
                   />
-                  <Button size="sm" className="text-sm font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-none px-4 py-1 min-w-0" onClick={() => {
-                    if (!walletAddress || !qrAmount) return;
-                    const qrPayload = {
-                      delegator: walletAddress,
-                      token: USDC_ADDRESS,
-                      maxAmount: qrAmount,
-                      timestamp: Date.now(),
-                    };
-                    setQRData(JSON.stringify(qrPayload));
-                    setShowQRModal(true); // Open modal directly
-                    setQrTestResult(null);
-                  }}>
-                    Generate QR
+                  <Button 
+                    size="sm" 
+                    className="text-sm font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-none px-4 py-1 min-w-0" 
+                    onClick={generateQRCode}
+                    disabled={loading}
+                  >
+                    {loading ? '...' : 'Generate QR'}
                   </Button>
                 </div>
               </div>
             </div>
             {/* Children List */}
-            {children.length === 0 && (
+            {safeChildren.length === 0 && (
               <div className="text-gray-400 text-center py-12">No children added yet. Generate a QR to add a child account.</div>
             )}
-            {children.map(child => (
+            {safeChildren.map(child => (
               <div key={child.id || child.address} className="flex items-center justify-between bg-gray-800/60 rounded-2xl p-8 mb-4 shadow-lg">
                 <div className="flex items-center space-x-8">
                   <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center text-5xl shadow-md">
@@ -447,7 +458,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
               <div className="flex space-x-2">
                 <select className="px-3 py-2 bg-gray-800 text-white rounded-lg border border-gray-600">
                   <option>All Children</option>
-                  {children.map(child => (
+                  {safeChildren.map(child => (
                     <option key={child.id}>{child.name}</option>
                   ))}
                 </select>
@@ -514,20 +525,75 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
       {/* QR Modal Popup */}
       {showQRModal && (
         <Modal onClose={() => { setShowQRModal(false); setQrTestResult(null); }}>
-          <div className="flex flex-col items-center p-6 bg-gray-900 rounded-2xl max-w-xs mx-auto">
-            <h2 className="text-xl font-bold text-yellow-400 mb-4">Child Account QR</h2>
-            <QRCodeSVG value={qrData} size={200} />
-            <div className="mt-4 w-full flex flex-col items-center">
-              <Button size="sm" className="w-full" onClick={() => handleTestConnect(qrData)}>
-                Test Connect
-              </Button>
-              {qrTestResult && (
-                <div className="mt-2 text-center text-sm text-white">{qrTestResult}</div>
-              )}
-              <Button size="sm" className="w-full mt-2" variant="outline" onClick={() => { setShowQRModal(false); setQrTestResult(null); }}>
-                Close
-              </Button>
+          <div className="flex flex-col items-center p-8 bg-gray-900 rounded-2xl max-w-md mx-auto">
+            <h2 className="text-2xl font-bold text-yellow-400 mb-2">Connect Child Account</h2>
+            <p className="text-gray-300 text-center mb-6 text-sm leading-relaxed">
+              Scan this QR code with the Zaap mobile app to connect a child account with the following restrictions:
+            </p>
+            
+            {/* Restrictions Info */}
+            <div className="bg-gray-800 rounded-lg p-4 mb-6 w-full">
+              <h3 className="text-yellow-400 font-semibold mb-2">Delegation Restrictions:</h3>
+              <ul className="text-gray-300 text-sm space-y-1">
+                <li>• <strong>Token:</strong> USDC only</li>
+                <li>• <strong>Max Amount:</strong> {qrAmount} USDC</li>
+                <li>• <strong>Weekly Limit:</strong> {Math.floor(Number(qrAmount) * 0.2)} USDC (20%)</li>
+              </ul>
             </div>
+            
+            {/* QR Code */}
+            <div className="bg-white p-4 rounded-lg mb-6">
+              <QRCodeSVG value={qrData} size={220} />
+            </div>
+            
+            {/* Instructions */}
+            <div className="text-gray-400 text-xs text-center mb-6 leading-relaxed">
+              <p className="font-semibold text-yellow-400 mb-2">How to connect:</p>
+              <p>1. Open Zaap mobile app</p>
+              <p>2. Tap "Scan QR Code"</p>
+              <p>3. Point camera at this QR code</p>
+              <p>4. Confirm connection on mobile</p>
+              <p className="text-yellow-400 mt-2 text-xs">The restrictions will be automatically applied to the child account</p>
+            </div>
+
+            {/* Connection Status */}
+            {qrTestResult && (
+              <div className="w-full mb-4">
+                <div className={`text-center text-sm p-3 rounded-lg border-l-4 ${
+                  qrTestResult.includes('✅') 
+                    ? 'bg-green-900/30 border-green-400 text-green-300' 
+                    : 'bg-red-900/30 border-red-400 text-red-300'
+                }`}>
+                  {qrTestResult}
+                </div>
+              </div>
+            )}
+
+            {/* Loading State */}
+            {loading && (
+              <div className="w-full mb-4">
+                <div className="text-center text-sm p-3 rounded-lg bg-yellow-900/30 border-l-4 border-yellow-400 text-yellow-300">
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="animate-spin w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full"></div>
+                    <span>Processing connection...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <Button 
+              size="sm" 
+              className="w-full" 
+              variant="outline" 
+              onClick={() => { 
+                setShowQRModal(false); 
+                setQrTestResult(null);
+                setQRAmount('');
+                setQRAlias('');
+              }}
+            >
+              Close
+            </Button>
           </div>
         </Modal>
       )}
