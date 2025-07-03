@@ -122,14 +122,16 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     
   // Update child alias/weeklyLimit/status
   const handleUpdateChild = async (address: string, updates: Partial<Child>) => {
-    const res = await fetch(`/api/children/${address}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates)
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      setChildren(prev => prev.map(c => (c.address === address || c.id === address) ? { ...c, ...updated } : c));
+    try {
+      const updated = await apiCall(`/api/children/${address}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+      });
+      if (updated.success) {
+        setChildren(prev => prev.map(c => (c.address === address || c.id === address) ? { ...c, ...updated.child } : c));
+      }
+    } catch (error) {
+      console.error('Failed to update child:', error);
     }
   };
 
@@ -193,15 +195,18 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
       return;
     }
     const address = child.id || child.address || '';
-    const res = await fetch(`/api/children/${address}/add-funds`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount })
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      setChildren(prev => prev.map(c => (c.id === address || c.address === address) ? { ...c, ...updated } : c));
-    } else {
+    try {
+      const updated = await apiCall(`/api/children/${address}/add-funds`, {
+        method: 'POST',
+        body: JSON.stringify({ amount })
+      });
+      if (updated.success) {
+        setChildren(prev => prev.map(c => (c.id === address || c.address === address) ? { ...c, ...updated.child } : c));
+      } else {
+        alert('Failed to add funds');
+      }
+    } catch (error) {
+      console.error('Failed to add funds:', error);
       alert('Failed to add funds');
     }
   };

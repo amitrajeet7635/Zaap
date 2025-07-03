@@ -5,7 +5,16 @@ const { ID } = require('node-appwrite');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://zaap-eight.vercel.app', 'https://zaap-backend.vercel.app'] 
+    : ['http://localhost:5173', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200
+}));
+app.options('*', cors());
 app.use(express.json());
 
 const DB_ID = process.env.APPWRITE_DB_ID;

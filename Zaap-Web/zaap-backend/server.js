@@ -9,10 +9,17 @@ const { ID } = require('node-appwrite');
 
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL, 'https://zaap-eight.vercel.app'] 
+    ? ['https://zaap-eight.vercel.app', 'https://zaap-backend.vercel.app'] 
     : ['http://localhost:5173', 'http://localhost:3000'],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200
 }));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
+
 app.use(bodyParser.json());
 
 const DB_ID = process.env.APPWRITE_DB_ID;
@@ -30,6 +37,11 @@ console.log('Environment check:', {
 
 // Dynamic delegator storage instead of hardcoded env var
 let currentDelegator = null;
+
+// Home route
+app.get('/', (req, res) => {
+  res.send('Zaap Backend API is running');
+});
 
 // Helper: Validate Ethereum address
 function isValidEthAddress(addr) {
@@ -456,10 +468,6 @@ app.get('/api/health', (req, res) => {
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-});
-
-app.get('/', (req, res) => {
-  res.send('Zaap Backend API is running');
 });
 
 module.exports = app;

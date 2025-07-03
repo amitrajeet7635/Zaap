@@ -2,7 +2,10 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://zaap-backend.vercel.app';
 
 export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
+  // Normalize URL to avoid double slashes
+  const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${baseUrl}${normalizedEndpoint}`;
   
   const defaultOptions: RequestInit = {
     headers: {
@@ -13,6 +16,7 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   };
 
   try {
+    console.log(`Making API call to: ${url}`);
     const response = await fetch(url, defaultOptions);
     
     if (!response.ok) {
@@ -26,6 +30,10 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   }
 };
 
-export const apiUrl = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
+export const apiUrl = (endpoint: string) => {
+  const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${baseUrl}${normalizedEndpoint}`;
+};
 
 export { API_BASE_URL };
