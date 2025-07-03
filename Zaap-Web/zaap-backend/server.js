@@ -13,7 +13,9 @@ app.use(bodyParser.json());
 
 const DB_ID = process.env.APPWRITE_DB_ID;
 const COLLECTION_ID = process.env.APPWRITE_CHILDREN_COLLECTION_ID;
-const USDC_ADDRESS = process.env.USDC_ADDRESS;
+const USDC_ADDRESS = process.env.USDC_ADDRESS || '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'; // Sepolia USDC
+
+console.log('USDC Address configured:', USDC_ADDRESS);
 
 // Dynamic delegator storage
 let currentDelegator = null;
@@ -99,7 +101,7 @@ app.post('/api/generate-qr', async (req, res) => {
     // Create QR payload with delegation restrictions
     const qrPayload = {
       delegator: finalDelegator,
-      token: USDC_ADDRESS,
+      token: USDC_ADDRESS, // Always set to Sepolia USDC
       maxAmount: max,
       weeklyLimit,
       timestamp: Date.now(),
@@ -112,6 +114,14 @@ app.post('/api/generate-qr', async (req, res) => {
     };
     
     console.log('Generated QR payload:', qrPayload);
+    console.log('Token in QR:', qrPayload.token);
+    
+    // Validate that token is set before returning
+    if (!qrPayload.token) {
+      console.error('USDC_ADDRESS not configured properly');
+      return res.status(500).json({ error: 'Token configuration error' });
+    }
+    
     return res.json({ success: true, qrData: JSON.stringify(qrPayload) });
   } catch (err) {
     console.error('Generate QR error:', err);
