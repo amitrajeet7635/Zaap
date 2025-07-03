@@ -20,6 +20,11 @@ interface ParentalLoginProps {
   onNavigateBack: () => void;
 }
 
+// Extend the Delegation type to allow delegateAddress for local use
+interface ExtendedDelegation extends ReturnType<typeof createDelegation> {
+  delegateAddress: string;
+}
+
 export default function ParentalLogin({ onAuthenticated, onNavigateBack }: ParentalLoginProps) {
   const [status, setStatus] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -56,11 +61,16 @@ export default function ParentalLogin({ onAuthenticated, onNavigateBack }: Paren
 
       // Create delegation FROM EOA TO smart account (or to another EOA)
       setStatus('Creating delegation...');
-      const delegation = createDelegation({
+      let delegation: ExtendedDelegation = createDelegation({
         from: address, // EOA signs
         to: smartAccount.address, // delegate to smart account
         caveats: [],
-      });
+      }) as ExtendedDelegation;
+      // Add delegate account address explicitly to the delegation data
+      delegation = {
+        ...delegation,
+        delegateAddress: smartAccount.address,
+      };
 
       // Sign delegation using EOA (MetaMask)
       setStatus('Requesting signature from MetaMask...');
