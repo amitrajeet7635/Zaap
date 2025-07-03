@@ -4,38 +4,44 @@ const bodyParser = require('body-parser');
 require('dotenv').config();
 
 const app = express();
-const { databases } = require('./appwriteClient');
-const { ID } = require('node-appwrite');
 
-// Enhanced CORS configuration for production
-const corsOptions = {
+// --- ROBUST CORS CONFIG FOR VERCEL ---
+const allowedOrigins = [
+  'https://zaap-eight.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://zaap-backend.vercel.app'
+];
+
+app.use(cors({
   origin: function (origin, callback) {
-    const allowedOrigins = [
-      'https://zaap-eight.vercel.app',
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'https://zaap-backend.vercel.app' // Allow same domain
-    ];
-    
-    // Allow requests with no origin (mobile apps, Postman, etc.)
+    // Allow requests with no origin (like Postman, curl)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200
+}));
+
+// Handle preflight for all routes
+app.options('*', cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
-  preflightContinue: false
-};
-
-app.use(cors(corsOptions));
-
-// Handle preflight requests explicitly for all routes
-app.options('*', cors(corsOptions));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200
+}));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -51,6 +57,9 @@ if (process.env.NODE_ENV !== 'production') {
     next();
   });
 }
+
+const { databases } = require('./appwriteClient');
+const { ID } = require('node-appwrite');
 
 const DB_ID = process.env.APPWRITE_DB_ID;
 const COLLECTION_ID = process.env.APPWRITE_CHILDREN_COLLECTION_ID;
