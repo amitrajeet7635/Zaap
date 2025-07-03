@@ -16,7 +16,7 @@ export default function Header({ onLoginClick, showLogin = true }: HeaderProps) 
             </svg>
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-            Zapp
+            Zaap
           </h1>
         </div>
         
