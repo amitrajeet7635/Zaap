@@ -38,7 +38,7 @@ export default defineConfig({
   ],
   server:{
     proxy: {
-      '/api': 'http://localhost:4000'// Adjust the backend URL as needed
+      '/api': 'http://localhost:4000'
     }
   },
   define: {

@@ -7,14 +7,15 @@ const app = express();
 const { databases } = require('./appwriteClient');
 const { ID } = require('node-appwrite');
 
+// Simple CORS for local development
 app.use(cors());
 app.use(bodyParser.json());
 
-const DB_ID = process.env.APPWRITE_DB_ID ;
-const COLLECTION_ID = process.env.APPWRITE_CHILDREN_COLLECTION_ID ;
-const USDC_ADDRESS = process.env.USDC_ADDRESS ;
+const DB_ID = process.env.APPWRITE_DB_ID;
+const COLLECTION_ID = process.env.APPWRITE_CHILDREN_COLLECTION_ID;
+const USDC_ADDRESS = process.env.USDC_ADDRESS;
 
-// Dynamic delegator storage instead of hardcoded env var
+// Dynamic delegator storage
 let currentDelegator = null;
 
 // Helper: Validate Ethereum address
@@ -22,16 +23,111 @@ function isValidEthAddress(addr) {
   return typeof addr === 'string' && /^0x[a-fA-F0-9]{40}$/.test(addr) && addr.length === 42;
 }
 
-// POST /api/connect-child
-// Connect a child account using QR restrictions (USDC only, weekly limit = 20% of max)
+// Home route
+app.get('/', (req, res) => {
+  res.send('Zaap Backend API is running locally');
+});
+
+// POST /api/set-delegator - Set delegator address
+app.post('/api/set-delegator', (req, res) => {
+  try {
+    const { delegator } = req.body;
+    
+    if (!isValidEthAddress(delegator)) {
+      return res.status(400).json({ 
+        error: 'Invalid delegator address',
+        message: 'Delegator address must be a valid Ethereum address'
+      });
+    }
+    
+    currentDelegator = delegator;
+    console.log('Delegator updated to:', delegator);
+    
+    return res.json({ 
+      success: true, 
+      delegator,
+      message: 'Delegator address updated successfully'
+    });
+  } catch (err) {
+    console.error('Set delegator error:', err);
+    return res.status(500).json({ error: 'Failed to set delegator' });
+  }
+});
+
+// GET /api/delegator - Get current delegator
+app.get('/api/delegator', (req, res) => {
+  if (!currentDelegator) {
+    return res.status(404).json({ 
+      error: 'No delegator set',
+      message: 'Please set delegator address first using POST /api/set-delegator' 
+    });
+  }
+  return res.json({ 
+    delegator: currentDelegator,
+    success: true 
+  });
+});
+
+// POST /api/generate-qr - Generate QR code data
+app.post('/api/generate-qr', async (req, res) => {
+  try {
+    const { delegator, maxAmount, alias } = req.body;
+    
+    // Use provided delegator or current stored delegator
+    const finalDelegator = delegator || currentDelegator;
+    
+    if (!isValidEthAddress(finalDelegator)) {
+      return res.status(400).json({ 
+        error: 'Invalid or missing delegator address',
+        message: 'Please provide a valid delegator address or set one using /api/set-delegator'
+      });
+    }
+    
+    const max = Number(maxAmount);
+    if (isNaN(max) || max <= 0) {
+      return res.status(400).json({ error: 'Invalid maxAmount' });
+    }
+    
+    const weeklyLimit = Math.floor(max * 0.2);
+    
+    // Update current delegator if provided
+    if (delegator && delegator !== currentDelegator) {
+      currentDelegator = delegator;
+      console.log('Delegator updated to:', delegator);
+    }
+    
+    // Create QR payload with delegation restrictions
+    const qrPayload = {
+      delegator: finalDelegator,
+      token: USDC_ADDRESS,
+      maxAmount: max,
+      weeklyLimit,
+      timestamp: Date.now(),
+      alias: alias || '',
+      restrictions: {
+        allowedToken: USDC_ADDRESS,
+        weeklySpendingLimit: weeklyLimit,
+        description: `Max: ${max} USDC, Weekly Limit: ${weeklyLimit} USDC`
+      }
+    };
+    
+    console.log('Generated QR payload:', qrPayload);
+    return res.json({ success: true, qrData: JSON.stringify(qrPayload) });
+  } catch (err) {
+    console.error('Generate QR error:', err);
+    return res.status(500).json({ error: 'Failed to generate QR' });
+  }
+});
+
+// POST /api/connect-child - Connect a child account
 app.post('/api/connect-child', async (req, res) => {
   try {
     console.log('Connect child request:', req.body);
     
-    // Extract data from request body with flexible key names
+    // Extract data from request body
     let { childAddress, address, walletAddress, delegator, token, maxAmount, timestamp, alias } = req.body;
     
-    // Accept address from multiple possible keys (for QR scanning compatibility)
+    // Accept address from multiple possible keys
     const finalChildAddress = childAddress || address || walletAddress;
     
     if (!isValidEthAddress(finalChildAddress)) {
@@ -140,9 +236,7 @@ app.post('/api/connect-child', async (req, res) => {
 app.get('/api/children', async (req, res) => {
   try {
     console.log('Fetching children from database...');
-    console.log('DB_ID:', DB_ID, 'COLLECTION_ID:', COLLECTION_ID);
     
-    // Check if database connection exists
     if (!databases) {
       console.error('Database connection not available');
       return res.status(200).json([]);
@@ -172,110 +266,11 @@ app.get('/api/children', async (req, res) => {
     return res.status(200).json(children);
   } catch (err) {
     console.error('List children error:', err);
-    console.error('Error details:', {
-      message: err.message,
-      code: err.code,
-      type: err.type
-    });
-    
-    // Return empty array with 200 status to prevent frontend crashes
     return res.status(200).json([]);
   }
 });
 
-// POST /api/generate-qr - Generate QR code data with delegation restrictions
-app.post('/api/generate-qr', async (req, res) => {
-  try {
-    const { delegator, maxAmount, alias } = req.body;
-    
-    // Use provided delegator or current stored delegator
-    const finalDelegator = delegator || currentDelegator;
-    
-    if (!isValidEthAddress(finalDelegator)) {
-      return res.status(400).json({ 
-        error: 'Invalid or missing delegator address',
-        message: 'Please provide a valid delegator address or set one using /api/set-delegator'
-      });
-    }
-    
-    const max = Number(maxAmount);
-    if (isNaN(max) || max <= 0) {
-      return res.status(400).json({ error: 'Invalid maxAmount' });
-    }
-    
-    const weeklyLimit = Math.floor(max * 0.2);
-    
-    // Update current delegator if provided
-    if (delegator && delegator !== currentDelegator) {
-      currentDelegator = delegator;
-      console.log('Delegator updated to:', delegator);
-    }
-    
-    // Create QR payload with delegation restrictions
-    const qrPayload = {
-      delegator: finalDelegator,
-      token: USDC_ADDRESS, // Restriction 1: Only USDC
-      maxAmount: max,
-      weeklyLimit, // Restriction 2: 20% weekly limit
-      timestamp: Date.now(),
-      alias: alias || '',
-      // Add delegation caveats for mobile app
-      restrictions: {
-        allowedToken: USDC_ADDRESS,
-        weeklySpendingLimit: weeklyLimit,
-        description: `Max: ${max} USDC, Weekly Limit: ${weeklyLimit} USDC`
-      }
-    };
-    
-    console.log('Generated QR payload:', qrPayload);
-    return res.json({ success: true, qrData: JSON.stringify(qrPayload) });
-  } catch (err) {
-    console.error('Generate QR error:', err);
-    return res.status(500).json({ error: 'Failed to generate QR' });
-  }
-});
-
-// POST /api/set-delegator - Set delegator address dynamically
-app.post('/api/set-delegator', (req, res) => {
-  try {
-    const { delegator } = req.body;
-    
-    if (!isValidEthAddress(delegator)) {
-      return res.status(400).json({ 
-        error: 'Invalid delegator address',
-        message: 'Delegator address must be a valid Ethereum address'
-      });
-    }
-    
-    currentDelegator = delegator;
-    console.log('Delegator updated to:', delegator);
-    
-    return res.json({ 
-      success: true, 
-      delegator,
-      message: 'Delegator address updated successfully'
-    });
-  } catch (err) {
-    console.error('Set delegator error:', err);
-    return res.status(500).json({ error: 'Failed to set delegator' });
-  }
-});
-
-// GET /api/delegator - Retrieve the current delegator address
-app.get('/api/delegator', (req, res) => {
-  if (!currentDelegator) {
-    return res.status(404).json({ 
-      error: 'No delegator set',
-      message: 'Please set delegator address first using POST /api/set-delegator' 
-    });
-  }
-  return res.json({ 
-    delegator: currentDelegator,
-    success: true 
-  });
-});
-
-// PUT /api/children/:address - Update child account details
+// PUT /api/children/{address} - Update child account details
 app.put('/api/children/:address', async (req, res) => {
   try {
     const { address } = req.params;
@@ -295,7 +290,7 @@ app.put('/api/children/:address', async (req, res) => {
       return res.status(404).json({ error: 'Child not found' });
     }
     
-    // Update child document
+    // Update document
     const updatedChild = await databases.updateDocument(
       DB_ID, 
       COLLECTION_ID, 
@@ -306,59 +301,18 @@ app.put('/api/children/:address', async (req, res) => {
       }
     );
     
-    return res.json({ success: true, child: updatedChild });
+    return res.json({ 
+      success: true, 
+      child: updatedChild,
+      message: 'Child updated successfully'
+    });
   } catch (err) {
     console.error('Update child error:', err);
     return res.status(500).json({ error: 'Failed to update child' });
   }
 });
 
-// POST /api/test-qr-scan - Test endpoint to simulate mobile app QR scanning
-app.post('/api/test-qr-scan', async (req, res) => {
-  try {
-    const { qrData } = req.body;
-    
-    if (!qrData) {
-      return res.status(400).json({ error: 'QR data is required' });
-    }
-    
-    let parsedQR;
-    try {
-      parsedQR = JSON.parse(qrData);
-    } catch (e) {
-      return res.status(400).json({ error: 'Invalid QR data format' });
-    }
-    
-    // Simulate mobile app providing a child address
-    const testChildAddress = '0x742d35Cc6634C0532925a3b8D3b4E70a1236c889'; // Test address
-    
-    // Forward to connect-child endpoint with child address
-    const connectPayload = {
-      ...parsedQR,
-      childAddress: testChildAddress
-    };
-    
-    // Call the connect-child logic directly
-    const connectReq = { body: connectPayload };
-    const connectRes = {
-      status: (code) => ({ json: (data) => res.status(code).json(data) }),
-      json: (data) => res.json(data)
-    };
-    
-    // Re-use the connect-child logic
-    return res.json({
-      success: true,
-      message: 'Test QR scan processed',
-      payload: connectPayload,
-      instruction: 'Use POST /api/connect-child with this payload'
-    });
-  } catch (err) {
-    console.error('Test QR scan error:', err);
-    return res.status(500).json({ error: 'Test failed', details: err.message });
-  }
-});
-
-// POST /api/children/:address/add-funds - Add funds to a child account
+// POST /api/children/{address}/add-funds - Add funds to child account
 app.post('/api/children/:address/add-funds', async (req, res) => {
   try {
     const { address } = req.params;
@@ -415,14 +369,9 @@ app.post('/api/children/:address/add-funds', async (req, res) => {
   }
 });
 
-
-const PORT = process.env.PORT || 4000;
+const PORT = 4000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-app.get('/', (req, res) => {
-  res.send('Zaap Backend API is running');
+  console.log(`Zaap Backend running locally on port ${PORT}`);
 });
 
 module.exports = app;

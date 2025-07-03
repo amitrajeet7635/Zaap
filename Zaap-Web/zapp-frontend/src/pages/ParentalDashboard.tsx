@@ -5,6 +5,7 @@ import Card from '../components/Card'
 import Button from '../components/Button'
 import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../components/Modal';
+import { apiCall } from '../utils/api';
 
 interface Child {
   id?: string;
@@ -82,9 +83,8 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     
     // Set delegator address in backend dynamically
     try {
-      await fetch('/api/set-delegator', {
+      await apiCall('/api/set-delegator', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ delegator: accounts[0] })
       });
     } catch (error) {
@@ -108,8 +108,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
   useEffect(() => {
     const fetchChildren = async () => {
       try {
-        const response = await fetch('/api/children');
-        const childrenList = await response.json();
+        const childrenList = await apiCall('/api/children');
         // Ensure we always have an array, even if response is not ok
         setChildren(Array.isArray(childrenList) ? childrenList : []);
       } catch (error) {
@@ -123,14 +122,16 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     
   // Update child alias/weeklyLimit/status
   const handleUpdateChild = async (address: string, updates: Partial<Child>) => {
-    const res = await fetch(`/api/children/${address}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates)
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      setChildren(prev => prev.map(c => (c.address === address || c.id === address) ? { ...c, ...updated } : c));
+    try {
+      const updated = await apiCall(`/api/children/${address}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+      });
+      if (updated.success) {
+        setChildren(prev => prev.map(c => (c.address === address || c.id === address) ? { ...c, ...updated.child } : c));
+      }
+    } catch (error) {
+      console.error('Failed to update child:', error);
     }
   };
 
@@ -143,9 +144,8 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
 
     setLoading(true);
     try {
-      const response = await fetch('/api/generate-qr', {
+      const data = await apiCall('/api/generate-qr', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           delegator: walletAddress,
           maxAmount: qrAmount,
@@ -153,8 +153,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
         })
       });
 
-      const data = await response.json();
-      if (response.ok && data.qrData) {
+      if (data.qrData) {
         setQRData(data.qrData);
         setShowQRModal(true);
         setQrTestResult(null);
@@ -196,15 +195,18 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
       return;
     }
     const address = child.id || child.address || '';
-    const res = await fetch(`/api/children/${address}/add-funds`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount })
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      setChildren(prev => prev.map(c => (c.id === address || c.address === address) ? { ...c, ...updated } : c));
-    } else {
+    try {
+      const updated = await apiCall(`/api/children/${address}/add-funds`, {
+        method: 'POST',
+        body: JSON.stringify({ amount })
+      });
+      if (updated.success) {
+        setChildren(prev => prev.map(c => (c.id === address || c.address === address) ? { ...c, ...updated.child } : c));
+      } else {
+        alert('Failed to add funds');
+      }
+    } catch (error) {
+      console.error('Failed to add funds:', error);
       alert('Failed to add funds');
     }
   };

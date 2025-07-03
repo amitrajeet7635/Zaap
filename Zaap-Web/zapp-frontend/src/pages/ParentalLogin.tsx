@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { switchOrAddSepoliaChain } from '../utils/switchOrAddEthChain';
 import { getMetaMaskSmartAccount } from '../utils/getMetamaskSmartAccounts';
+import { apiCall } from '../utils/api';
 
 import Header from '../components/Header';
 import Card from '../components/Card';
@@ -60,15 +61,10 @@ export default function ParentalLogin({ onAuthenticated, onNavigateBack }: Paren
       // Set delegator address in backend dynamically
       setStatus('Setting up delegator...');
       try {
-        const delegatorResponse = await fetch('/api/set-delegator', {
+        await apiCall('/api/set-delegator', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ delegator: address })
         });
-        
-        if (!delegatorResponse.ok) {
-          console.warn('Failed to set delegator in backend, continuing...');
-        }
       } catch (error) {
         console.warn('Failed to set delegator in backend:', error);
       }
