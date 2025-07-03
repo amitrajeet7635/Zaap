@@ -111,7 +111,7 @@ fun HomePage(modifier: Modifier = Modifier, navHostController: NavHostController
             }
 
             item {
-                RewardsCard()
+                RewardsCard(navHostController = navHostController)
             }
             item {
                 DetailedSection()
@@ -148,7 +148,6 @@ fun TopBar(modifier: Modifier = Modifier, name: String, imageUrl: String, status
             Text(
                 "Hey ${name},", fontSize = 18.sp, color = Color.Black, fontWeight = FontWeight.Medium
             )
-//            Icon(Icons.Default.AccountCircle, contentDescription = "Profile", tint = Color.Black)
             AsyncImage(model = imageUrl, contentDescription = null, modifier = Modifier.size(28.dp).clip(RoundedCornerShape(50.dp)))
         }
 
@@ -489,26 +488,29 @@ fun AccountControlsSection(modifier: Modifier = Modifier.padding(vertical = 5.dp
 }
 
 @Composable
-fun RewardsCard(modifier: Modifier = Modifier.padding(vertical = 5.dp)) {
+fun RewardsCard(modifier: Modifier = Modifier.padding(vertical = 5.dp), navHostController: NavHostController) {
     ElevatedCard(
         shape = RoundedCornerShape(40.dp),
-        colors = CardDefaults.elevatedCardColors(Color(0xFF80d8b8)),
-        modifier = modifier.fillMaxWidth()
+        colors = CardDefaults.elevatedCardColors(Color(0xFF99D9C1)),
+        modifier = modifier.fillMaxWidth().clip(RoundedCornerShape(40.dp)).clickable{navHostController.navigate("Rewards")}
 
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                "Get Rewards on each payments ! ",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Black
-            )
-            Text(
-                "Tap to know more",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Black
-            )
+        Row(modifier = Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Column(modifier = Modifier) {
+                Text(
+                    "Get Rewards on each payments ! ",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black
+                )
+                Text(
+                    "Tap to know more",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black
+                )
+            }
+                Icon(painter = painterResource(R.drawable.offer), contentDescription = null, tint = Color.Black)
         }
     }
 }
