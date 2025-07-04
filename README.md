@@ -102,12 +102,17 @@ Highlight the most important features of your project:
 - ✅ Enables seamless USDC transfers between parent and child wallets using Circle’s developer SDKs.
 
 Add images, GIFs, or screenshots if helpful!
-
+## Parental Portal:
 <img width="1470" alt="image" src="https://github.com/user-attachments/assets/8f6764b0-1ffc-4333-b9aa-663164a3d8cb" />
 <img width="1468" alt="image" src="https://github.com/user-attachments/assets/b6fa038b-7557-4503-a67a-9dfd588b5acf" />
 <img width="1458" alt="image" src="https://github.com/user-attachments/assets/86bb86ed-aee9-41d1-a7a5-77d3927c4b19" />
 <img width="1468" alt="image" src="https://github.com/user-attachments/assets/2695cf98-ddb5-48f3-bac5-a4d63d866821" />
 
+## Zaap App:
+![image](https://github.com/user-attachments/assets/c7e46c6b-7693-4ce7-9c25-8304b2c6c563)
+![image](https://github.com/user-attachments/assets/563e9a21-5f5e-4a04-bec4-c443574aa03c)
+![image](https://github.com/user-attachments/assets/ee69e092-a987-4e47-9fbd-d2e50da09dfa)
+![image](https://github.com/user-attachments/assets/937da339-e5ae-45a9-a1c0-b62e4b45d05e)
 
 
 
