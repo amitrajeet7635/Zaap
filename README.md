@@ -30,13 +30,17 @@ Create DeFi tools that boost the utility of card-linked assets. Think allocation
 
 **Also integrated Metamask DTK and Circle Wallets *(Bonus tracks)***
 
-## Demo & Deliverables
-- **Demo Video (Click below to watch the youtube video):** - <br>
+## Live Demos & Deliverables
+- **Demo Video (Click below to watch the youtube video):** - [Zaap BuildShowcase | Project Demo](https://youtu.be/sL7EbgwUi9M) <br>
 <a href="https://youtu.be/sL7EbgwUi9M" target="_blank">
-  <img src="https://github.com/user-attachments/assets/4f2100be-4dbf-4d3b-9e17-e479d4de28af" alt="Build Showcase" width="400">
+  <img src="https://github.com/user-attachments/assets/f2e65157-17ee-49bb-a9ec-856a4ee6e553" alt="Build Showcase" width="400">
 </a>
 
-- **Pitch Deck / PPT Link:** https://www.loom.com/share/c6d53a0bf8c34ac182cd7467cb829208?sid=c67c0044-8307-4b74-a7ab-6b784b6ad043 
+
+- **Pitch Deck / PPT Link:** [Zaap Pitch Deck](https://www.loom.com/share/c6d53a0bf8c34ac182cd7467cb829208?sid=c67c0044-8307-4b74-a7ab-6b784b6ad043)
+- **Web Dashboard(For Parent):** [zaap-eight.vercel.app](https://zaap-eight.vercel.app/)
+- **Backend Hosted on Vercel:** [zaap-backend.vercel.app](https://zaap-backend.vercel.app/)
+- **Android App APK:** [Download Zaap APK (Android)](https://drive.google.com/drive/folders/1G7T06gCsx93fCXGpHH7SzYnNDyLpwLYx?usp=sharing)
 
 ---
 
@@ -94,7 +98,27 @@ Major Highlights of your project:
 - ✅ Enables seamless USDC transfers between parent and child wallets using Circle’s developer SDKs.
 - ✅ Smart Savings by Child
 
-### Flow of our APP
+
+### 🧠 Why This Makes Sense for MetaMask Card Users — And Where It’s Going
+
+> ⚡️ **The Problem**
+>
+> Right now, Web3 is still way too complicated — especially for the next-gen. You’ve got to create a wallet, manage private/public keys, handle gas, and figure out how to move funds. It’s a mess. That complexity stops normal users from adopting Web3 for daily payments.
+>
+> But with **ZAAP**, it’s different. You onboard instantly — just sign in with your social login. No seed phrases. No extensions. No confusion. It feels like a regular app — but under the hood, it’s Web3-powered.
+>
+> Imagine a teen with a **MetaMask Card** linked to their delegated wallet. They can just swipe or scan to pay at any store, kiosk, or merchant. The transaction happens in USDC, and their parent gets an instant update. They can fund the wallet, set limits, or pause access — all from their web dashboard.
+>
+> The MetaMask Card isn’t live yet, so we couldn’t test swipes directly — but everything else is ready. Once it's launched, ZAAP fits in directly. We’re also looking ahead: in India, we plan to integrate **UPI payments**, making it even more real-world ready.
+>
+> And forget about gas fees — we sponsor them. Users can pay a small annual fee and never worry about onchain transaction costs. That’s a big UX win.
+>
+> Looking forward, we can build loyalty and reward layers on top. We already track spending, saving, and limits — so we can partner with **teen-focused brands** to offer cashbacks, streak rewards, or custom deals. It makes ZAAP sticky, fun, and personal.
+>
+> This isn’t just another payment app. It’s **real-world Web3 adoption** — where MetaMask Cards help teens gain financial freedom, while parents keep control. Zero banks, zero friction, 100% ZAAP.
+
+
+### Flow of our APP:
 1. Parent first connect existing Metamask Wallet(Or create a new wallet )
 2. Add a new child profile - set nickname, amount to be spend and Done.. 
 3. Click on Show QR
@@ -122,15 +146,19 @@ Major Highlights of your project:
 
 ### Zaap Mobile App:
 
-<div align="left", gap = 20px>
-    <img src="https://github.com/user-attachments/assets/a1c856a6-a1b5-401e-8173-4f8e3eac15d8" height="400" />
-    <img src="https://github.com/user-attachments/assets/0486ac41-c128-4cf5-a383-875efb71265f" height="400" />
-  <img src="https://github.com/user-attachments/assets/45a5b366-cf46-4091-ae15-a2cf83150421" height="400" />
-  <img src="https://github.com/user-attachments/assets/563e9a21-5f5e-4a04-bec4-c443574aa03c" height="400" />
-  <img src="https://github.com/user-attachments/assets/ee69e092-a987-4e47-9fbd-d2e50da09dfa" height="400" />
-  <img src="https://github.com/user-attachments/assets/937da339-e5ae-45a9-a1c0-b62e4b45d05e" height="400" />
-    <img src="https://github.com/user-attachments/assets/c7e46c6b-7693-4ce7-9c25-8304b2c6c563" height="400" />
-</div>
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/a1c856a6-a1b5-401e-8173-4f8e3eac15d8" width="120" /></td>
+    <td><img src="https://github.com/user-attachments/assets/0486ac41-c128-4cf5-a383-875efb71265f" width="120" /></td>
+    <td><img src="https://github.com/user-attachments/assets/45a5b366-cf46-4091-ae15-a2cf83150421" width="120" /></td>
+    <td><img src="https://github.com/user-attachments/assets/563e9a21-5f5e-4a04-bec4-c443574aa03c" width="120" /></td>
+    <td><img src="https://github.com/user-attachments/assets/ee69e092-a987-4e47-9fbd-d2e50da09dfa" width="120" /></td>
+    <td><img src="https://github.com/user-attachments/assets/937da339-e5ae-45a9-a1c0-b62e4b45d05e" width="120" /></td>
+    <td><img src="https://github.com/user-attachments/assets/c7e46c6b-7693-4ce7-9c25-8304b2c6c563" width="120" /></td>
+  </tr>
+</table>
+
+
 
 ### Parental Portal:
 <div align="left", gap = 30px>
@@ -140,9 +168,25 @@ Major Highlights of your project:
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/2695cf98-ddb5-48f3-bac5-a4d63d866821" />
 </div>
 
+
+## 🧪 What’s Working Now?
+
+| Feature                      | Status                                                                                   |
+|------------------------------|------------------------------------------------------------------------------------------|
+| Mobile app (Kotlin/Java)      | ![Working](https://img.shields.io/badge/status-working-brightgreen?style=flat-square)    |
+| Web dashboard (React/TS)      | ![Working](https://img.shields.io/badge/status-working-brightgreen?style=flat-square)    |
+| Wallet delegation & tracking  | ![Working](https://img.shields.io/badge/status-working-brightgreen?style=flat-square)    |
+| Hosting & demos               | ![Working](https://img.shields.io/badge/status-working-brightgreen?style=flat-square)    |
+|MetaMask Card Integration | ![Ready](https://img.shields.io/badge/status-ready-brightgreen?style=flat-square)|
+| Rewards & Cashbacks integration     | ![Coming Soon](https://img.shields.io/badge/status-coming--soon-yellow?style=flat-square)|
+
+
+> ⚠️ *Project is still buggy but fully hosted and demo-ready.*
+
+
 ---
 
-## 🧪 How to Run the Project Locally
+## <img src = "https://user-images.githubusercontent.com/74038190/212284087-bbe7e430-757e-4901-90bf-4cd2ce3e1852.gif" width = "24"/> How to Run the Project Locally
 
 ### Requirements:
 - Node.js / Python / Docker / etc.
@@ -182,8 +226,6 @@ POST - /api/set-delegator
 # Build the project using Gradle
 ```
 
----
-
 <details>
   <summary><strong>📎 Resources / Docs / Credits</strong></summary>
 
@@ -193,20 +235,26 @@ POST - /api/set-delegator
 
 </details>
 
+---
 
-## 🏁 Final Words
+##  <img src="https://user-images.githubusercontent.com/74038190/216122041-518ac897-8d92-4c6b-9b3f-ca01dcaf38ee.png" width="26" /> What's Next ? Are we still onto it ! 
 
-Zaap isn’t just a product — it’s a movement toward redefining financial freedom for the next generation. By blending the power of Web3 with privacy-first design, Zaap empowers teens to spend responsibly while giving parents smart, seamless control. In a world where digital finance is evolving fast, Zaap bridges the gap between trust, technology, and teen independence.
+100% — this is not just a one-weekend hack.
+We’ve built a solid prototype on Web and Android, and have been heads down on this project for weeks.
+ZAAP is here to stay. While this submission marks a milestone, our team is actively working to fix bugs and improve the product.
+If we receive enough positive feedback and community interest, we will definitely launch ZAAP in the market.
+
+
 **No cash. No cards. Just Zaap.**
 
 ---
 
-### Team Members:  
+### 👋Connect with us:  
 
 <table align="left">
   <tr>
     <td><img src="https://github.com/Anmol-Baranwal/Cool-GIFs-For-GitHub/assets/74038190/7bb1e704-6026-48f9-8435-2f4d40101348" width="50"></td>
-    <td><h4>Built by the Zaap Squad</h4></td>
+    <td><h4>Built by the Zaap Teaam</h4></td>
   </tr>
   <tr>
     <td colspan="2" align="center">
@@ -229,6 +277,8 @@ Zaap isn’t just a product — it’s a movement toward redefining financial fr
     </td>
   </tr>
 </table>
+
+<div align="center"> <strong>We're actively building, debugging, and prototyping —<br>drop a ⭐, share your feedback, or just vibe with us!</strong> <br/><br/> <img src="https://github.com/Anmol-Baranwal/Cool-GIFs-For-GitHub/assets/74038190/491e3e44-11a0-487a-b07b-717f677bbe4a" width="170" /> </div>
 
 
 
