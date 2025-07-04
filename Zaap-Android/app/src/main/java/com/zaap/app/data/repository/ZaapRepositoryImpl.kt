@@ -32,9 +32,10 @@ class ZaapRepositoryImpl @Inject constructor(private val api: ZaapBackendAPI) {
                 timestamp
             )
             val response = api.connectChild(request)
+            println("Eta backend side a + ${response.body()}")
             response.isSuccessful
         } catch (e: Exception) {
-            Log.d("Backend Error", "${e.message}")
+            println("Backend Error: ${e.message}")
             false
         }
     }

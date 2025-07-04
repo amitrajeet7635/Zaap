@@ -19,7 +19,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://zaap-backend.vercel.app/") // ✅ Your API Base URL here
+            .baseUrl("https://zaap-backend.vercel.app") // ✅ Your API Base URL here
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }

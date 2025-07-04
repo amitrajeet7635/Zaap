@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.gson.Gson
 import com.zaap.app.data.local.datastore.UserData
@@ -33,7 +34,7 @@ import com.zaap.app.presentation.viewmodel.ConnectToParentViewModel
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun ConnectToParentQRScan(modifier: Modifier = Modifier, viewModel: ConnectToParentViewModel = hiltViewModel()) {
+fun ConnectToParentQRScan(modifier: Modifier = Modifier, viewModel: ConnectToParentViewModel = hiltViewModel(), navHostController: NavHostController) {
 
     val context = LocalContext.current
     val connectStatus by viewModel.connectStatus.collectAsState()
@@ -43,10 +44,12 @@ fun ConnectToParentQRScan(modifier: Modifier = Modifier, viewModel: ConnectToPar
     LaunchedEffect(connectStatus) {
         when (connectStatus) {
             true -> {
+                navHostController.navigate("Home") {popUpTo("Home")}
                 Toast.makeText(context, "Child connected successfully", Toast.LENGTH_SHORT).show()
             }
             false -> {
                 Toast.makeText(context, error ?: "Failed to connect child", Toast.LENGTH_SHORT).show()
+                navHostController.navigate("ParentConnect") {popUpTo("ParentConnect"){inclusive = true} }
             }
             null -> Unit
         }
@@ -90,7 +93,7 @@ fun ConnectToParentQRScan(modifier: Modifier = Modifier, viewModel: ConnectToPar
 
                 try {
                     val qrData = Gson().fromJson(result, ConnectParentQRScanData::class.java)
-                    println("Delegator - ${qrData.delegator}")
+                    println("Child - ${childAddress}")
                     viewModel.connectChild(
                         childAddress = childAddress,
                         delegator = qrData.delegator,

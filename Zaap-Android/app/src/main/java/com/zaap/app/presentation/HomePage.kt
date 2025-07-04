@@ -114,7 +114,7 @@ fun HomePage(modifier: Modifier = Modifier, navHostController: NavHostController
                 RewardsCard(navHostController = navHostController)
             }
             item {
-                DetailedSection()
+                DetailedSection(navHostController = navHostController)
             }
 
             item {
@@ -261,7 +261,7 @@ fun Card(modifier: Modifier = Modifier) {
 
                             }
                             Text(
-                                "$ 1200",
+                                "$ 113",
                                 Modifier.padding(horizontal = 5.dp),
                                 color = Color.Black,
                                 fontSize = 24.sp,
@@ -305,12 +305,13 @@ fun Card(modifier: Modifier = Modifier) {
                                 Spacer(modifier = Modifier.width(8.dp))
                             }
                             Text(
-                                "$ 2100",
+                                "$ 210",
                                 Modifier.padding(horizontal = 5.dp),
                                 color = Color.Black,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
+
 
                         }
                     }
@@ -318,13 +319,22 @@ fun Card(modifier: Modifier = Modifier) {
                     LinearProgressIndicator(
                         color = Color(0xFFFFFFFF),
                         trackColor = Color(0xFF7A89D8),
-                        progress = { 0.6f },
+                        progress = { 0.53f },
                         strokeCap = StrokeCap.Square,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(50.dp))
                             .height(12.dp),
                         drawStopIndicator = {})
+
+                    Text(
+                        "You have spent ~53.81%",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Black,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
@@ -516,7 +526,7 @@ fun RewardsCard(modifier: Modifier = Modifier.padding(vertical = 5.dp), navHostC
 }
 
 @Composable
-fun DetailedSection(modifier: Modifier = Modifier) {
+fun DetailedSection(modifier: Modifier = Modifier, navHostController: NavHostController) {
     Column(
         modifier = modifier
             .padding(vertical = 10.dp)
@@ -543,7 +553,7 @@ fun DetailedSection(modifier: Modifier = Modifier) {
 
         Box(modifier = Modifier
             .fillMaxWidth()
-            .clickable {}
+            .clickable {navHostController.navigate("SavedCards")}
             .padding(vertical = 12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
