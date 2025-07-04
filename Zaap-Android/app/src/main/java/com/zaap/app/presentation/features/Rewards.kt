@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.zaap.app.presentation.glassEffect
 
 @Composable
 fun Rewards(modifier: Modifier = Modifier, navHostController: NavHostController) {
@@ -83,18 +84,3 @@ fun Rewards(modifier: Modifier = Modifier, navHostController: NavHostController)
     }
 }
 
-fun Modifier.glassEffect(roundedCorner: Dp) = this
-    .background(
-        brush = Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.15f)
-            )
-        )
-    )
-    .border(
-        width = 1.dp, brush = Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.4f), Color.White.copy(alpha = 0.1f)
-            )
-        ), shape = RoundedCornerShape(roundedCorner)
-    )

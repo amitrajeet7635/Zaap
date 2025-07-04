@@ -19,6 +19,7 @@ import com.zaap.app.presentation.LoginScreen
 import com.zaap.app.presentation.features.ConnectToParentQRScan
 import com.zaap.app.presentation.features.ParentConnect
 import com.zaap.app.presentation.features.Rewards
+import com.zaap.app.presentation.features.SavedCards
 import com.zaap.app.presentation.features.ScanAndPay
 import com.zaap.app.presentation.features.ScanPayCheckout
 import com.zaap.app.presentation.features.TransferMoney
@@ -81,6 +82,10 @@ fun Navigation(
 
             composable("Rewards") {
                 Rewards(navHostController = navHostController)
+            }
+
+            composable("SavedCards") {
+                SavedCards(navHostController = navHostController)
             }
         }
     }
