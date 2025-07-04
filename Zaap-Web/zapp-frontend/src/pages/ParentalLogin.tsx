@@ -6,6 +6,7 @@ import { apiCall } from '../utils/api';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import Modal from '../components/Modal';
 
 // Type guard for window.ethereum
 function getEthereum() {
@@ -23,6 +24,7 @@ interface ParentalLoginProps {
 export default function ParentalLogin({ onAuthenticated, onNavigateBack }: ParentalLoginProps) {
   const [status, setStatus] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
 
   const handleLogin = async () => {
     const ethereum = getEthereum();
@@ -115,7 +117,6 @@ export default function ParentalLogin({ onAuthenticated, onNavigateBack }: Paren
   return (
     <div className="min-h-screen bg-black font-inter">
       <Header showLogin={false} />
-
       <div className="max-w-4xl mx-auto px-6 py-16">
         {/* Hero Section */}
         <div className="text-center mb-12 animate-fade-in">
@@ -172,6 +173,13 @@ export default function ParentalLogin({ onAuthenticated, onNavigateBack }: Paren
                 )}
               </Button>
               <button onClick={onNavigateBack} className="mt-4 text-yellow-400 underline">Back to Home</button>
+              <button
+                onClick={() => setShowGuideModal(true)}
+                className="mt-2 text-blue-400 underline block mx-auto"
+                type="button"
+              >
+                How to Login with MetaMask?
+              </button>
             </div>
           </Card>
 
@@ -327,6 +335,46 @@ export default function ParentalLogin({ onAuthenticated, onNavigateBack }: Paren
           </div>
         </Card>
       </div>
+      {showGuideModal && (
+        <Modal onClose={() => setShowGuideModal(false)}>
+          <div className="p-4 max-w-md text-left">
+            <h2 className="text-2xl font-bold text-yellow-400 mb-4">How to Login with MetaMask</h2>
+            <ol className="list-decimal list-inside space-y-3 text-gray-200 text-base">
+              <li>
+                Go to the MetaMask Chrome Web Store:
+                <a
+                  href="https://chromewebstore.google.com/detail/nkbihfbeogaeaoehlefnkodbefgpgknn?utm_source=item-share-cb"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 underline ml-1"
+                >
+                  Install MetaMask
+                </a>
+              </li>
+              <li>
+                Create your MetaMask account by following the on-screen instructions.
+              </li>
+              <li>
+                Click the MetaMask icon in your browser extensions, then select the network dropdown at the top and choose <span className="font-semibold text-yellow-300">Sepolia</span>.
+              </li>
+              <li>
+                If you don't see Sepolia, enable test networks:
+                <ul className="list-disc list-inside ml-5 mt-1 text-sm text-gray-300">
+                  <li>Click your account icon in MetaMask, go to <span className="font-semibold">Settings</span> &rarr; <span className="font-semibold">Advanced</span>.</li>
+                  <li>Turn on <span className="font-semibold">Show test networks</span>.</li>
+                  <li>Now select <span className="font-semibold text-yellow-300">Sepolia</span> from the network list.</li>
+                </ul>
+              </li>
+            </ol>
+            <button
+              onClick={() => setShowGuideModal(false)}
+              className="mt-6 w-full py-2 rounded-lg bg-yellow-400 text-black font-semibold hover:bg-yellow-300 transition"
+            >
+              Got it!
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
