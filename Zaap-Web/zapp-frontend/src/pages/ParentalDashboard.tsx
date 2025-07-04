@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { BrowserProvider, Contract, formatUnits } from 'ethers';
+import { BrowserProvider } from 'ethers';
 import Header from '../components/Header'
 import Card from '../components/Card'
 import Button from '../components/Button'
 import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../components/Modal';
-import { apiCall } from '../utils/api';
+import { apiCall, loginUser, getParentWallet } from '../utils/api';
 
 interface Child {
   id?: string;
@@ -32,17 +32,18 @@ interface Transaction {
   status: 'completed' | 'pending' | 'failed'
 }
 
+interface ParentWallet {
+  walletId: string;
+  address: string;
+  walletSetId: string;
+  delegatorAddress: string;
+  balance: number;
+  createdAt: number;
+}
+
 interface ParentalDashboardProps {
   onNavigateBack: () => void
 }
-
-// Update to Ethereum Sepolia USDC address
-const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'; 
-
-const USDC_ABI = [
-  "function balanceOf(address) view returns (uint256)",
-  "function approve(address spender, uint256 amount)",
-];
 
 export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'children' | 'transactions'>('overview')
@@ -52,6 +53,7 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
   const [transactions] = useState<Transaction[]>([])
 
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [parentWallet, setParentWallet] = useState<ParentWallet | null>(null);
   const [usdcBalance, setUsdcBalance] = useState<string>('0');
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrData, setQRData] = useState('');
@@ -68,10 +70,33 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     const storedAddress = localStorage.getItem('delegatorAddress');
     if (storedAddress) {
       setWalletAddress(storedAddress);
+      performLogin(storedAddress);
     } else {
       connectWallet(); // Auto-connect if not stored
     }
   }, []);
+
+  // Perform login and create parent wallet
+  const performLogin = async (delegatorAddress: string) => {
+    try {
+      setLoading(true);
+      console.log('Performing login for delegator:', delegatorAddress);
+      
+      const loginResponse = await loginUser(delegatorAddress);
+      
+      if (loginResponse.success && loginResponse.parentWallet) {
+        setParentWallet(loginResponse.parentWallet);
+        setUsdcBalance(loginResponse.parentWallet.balance.toString());
+        console.log('Parent wallet created/retrieved:', loginResponse.parentWallet);
+      } else {
+        console.log('Login successful but no parent wallet created');
+      }
+    } catch (error) {
+      console.error('Login failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Connect wallet
   const connectWallet = async () => {
@@ -81,27 +106,36 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     setWalletAddress(accounts[0]);
     localStorage.setItem('delegatorAddress', accounts[0]);
     
-    // Set delegator address in backend dynamically
+    // Perform login with the new wallet address
+    await performLogin(accounts[0]);
+  };
+
+  // Fetch parent wallet balance
+  const fetchParentWalletBalance = async () => {
+    if (!walletAddress) return;
+    
     try {
-      await apiCall('/api/set-delegator', {
-        method: 'POST',
-        body: JSON.stringify({ delegator: accounts[0] })
-      });
+      const parentWalletData = await getParentWallet(walletAddress);
+      
+      if (parentWalletData.success && parentWalletData.parentWallet) {
+        setParentWallet(parentWalletData.parentWallet);
+        setUsdcBalance(parentWalletData.parentWallet.balance.toString());
+      }
     } catch (error) {
-      console.warn('Failed to set delegator in backend:', error);
+      console.error('Failed to fetch parent wallet balance:', error);
     }
   };
 
-  // Fetch USDC balance
+  // Fetch parent wallet balance periodically
   useEffect(() => {
     if (!walletAddress) return;
-    const fetchBalance = async () => {
-      const provider = new BrowserProvider((window as any).ethereum);
-      const usdc = new Contract(USDC_ADDRESS, USDC_ABI, provider);
-      const bal = await usdc.balanceOf(walletAddress);
-      setUsdcBalance(formatUnits(bal, 6));
-    };
-    fetchBalance();
+    
+    fetchParentWalletBalance();
+    
+    // Set up interval to refresh balance every 30 seconds
+    const intervalId = setInterval(fetchParentWalletBalance, 30000);
+    
+    return () => clearInterval(intervalId);
   }, [walletAddress]);
 
   // Fetch children from backend on load
@@ -142,23 +176,32 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
       return;
     }
 
+    // Validate inputs before sending
+    const amount = parseFloat(qrAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+
+    console.log('Generating QR with:', { 
+      delegator: walletAddress, 
+      maxAmount: amount, 
+      alias: qrAlias || undefined 
+    });
+
     setLoading(true);
     try {
-      const data = await apiCall('/api/generate-qr', {
-        method: 'POST',
-        body: JSON.stringify({
-          delegator: walletAddress,
-          maxAmount: qrAmount,
-          alias: qrAlias || '', // Optional alias for the child
-        })
-      });
+      const { generateQR } = await import('../utils/api');
+      const data = await generateQR(walletAddress, amount, qrAlias || undefined);
 
-      if (data.qrData) {
+      if (data.success && data.qrData) {
         setQRData(data.qrData);
         setShowQRModal(true);
         setQrTestResult(null);
       } else {
-        alert('Failed to generate QR: ' + (data.error || 'Unknown error'));
+        const errorMessage = data.error || data.message || 'Unknown error';
+        console.error('QR generation failed:', data);
+        alert('Failed to generate QR: ' + errorMessage);
       }
     } catch (error) {
       console.error('QR generation error:', error);
@@ -527,8 +570,30 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
               </Button>
             ) : (
               <div className="text-right">
-                <p className="text-sm text-gray-400">Wallet: {walletAddress.slice(0,6)}...{walletAddress.slice(-4)}</p>
-                <p className="text-sm text-yellow-400">USDC: {usdcBalance}</p>
+                <div className="flex items-center space-x-2">
+                  <div>
+                    <p className="text-sm text-gray-400">Delegator: {walletAddress.slice(0,6)}...{walletAddress.slice(-4)}</p>
+                    {parentWallet && (
+                      <div className="flex items-center space-x-2">
+                        <p className="text-sm text-blue-400">Circle Wallet: {parentWallet.address.slice(0,6)}...{parentWallet.address.slice(-4)}</p>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(parentWallet.address);
+                            alert('Parent wallet address copied!');
+                          }}
+                          className="text-gray-400 hover:text-white transition-colors"
+                          title="Copy parent wallet address"
+                        >
+                          📋
+                        </button>
+                      </div>
+                    )}
+                    <p className="text-sm text-yellow-400">USDC Balance: {usdcBalance}</p>
+                  </div>
+                  {loading && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  )}
+                </div>
               </div>
             )}
           </div>
