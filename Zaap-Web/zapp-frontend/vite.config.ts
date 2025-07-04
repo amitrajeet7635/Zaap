@@ -38,7 +38,7 @@ export default defineConfig({
   ],
   server:{
     proxy: {
-      '/api': 'http://localhost:4000'
+      '/api': 'https://zaap-backend.vercel.app', // Adjust this URL as needed for your backend
     }
   },
   define: {

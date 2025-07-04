@@ -1,5 +1,5 @@
 // API configuration utility for local development
-const API_BASE_URL = 'https://zaap-backend.vercel.app/'; // Adjust this URL as needed for your local setup
+const API_BASE_URL = 'https://zaap-backend.vercel.app'; // Adjust this URL as needed for your local setup
 
 export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   // Normalize URL to avoid double slashes
@@ -109,4 +109,22 @@ export const updateChild = async (childAddress: string, updates: any) => {
     method: 'PUT',
     body: JSON.stringify(updates),
   });
+};
+
+// Get child Circle wallet balance
+export const getChildBalance = async (childAddress: string) => {
+  return apiCall(`/api/child-balance/${childAddress}`);
+};
+
+// Transfer USDC from child to external address
+export const childTransferUSDC = async (childAddress: string, toAddress: string, amount: number, memo?: string) => {
+  return apiCall('/api/child-transfer', {
+    method: 'POST',
+    body: JSON.stringify({ childAddress, toAddress, amount, memo }),
+  });
+};
+
+// Get child transfer history
+export const getChildTransferHistory = async (childAddress: string) => {
+  return apiCall(`/api/child-transfer-history/${childAddress}`);
 };

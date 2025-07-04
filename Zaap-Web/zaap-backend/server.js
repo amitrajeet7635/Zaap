@@ -299,9 +299,137 @@ async function transferUSDCToChild(parentWalletId, childWalletAddress, amount) {
   }
 }
 
+// Helper: Get child Circle wallet USDC balance
+async function getChildWalletUSDCBalance(childWalletId) {
+  const client = await ensureCircleSDKReady();
+
+  try {
+    console.log('Checking USDC balance for child wallet:', childWalletId);
+    
+    // Get wallet token balances
+    const balancesResponse = await client.getWalletTokenBalance({
+      id: childWalletId
+    });
+
+    if (!balancesResponse.data?.tokenBalances) {
+      throw new Error('Failed to fetch child wallet token balances');
+    }
+
+    // Find USDC balance
+    const usdcBalance = balancesResponse.data.tokenBalances.find(balance => 
+      balance.token?.symbol === 'USDC' || 
+      balance.token?.name?.toLowerCase().includes('usdc')
+    );
+
+    if (!usdcBalance) {
+      console.warn('No USDC balance found for child wallet');
+      return 0;
+    }
+
+    const balance = parseFloat(usdcBalance.amount || '0');
+    console.log(`Child wallet USDC balance: ${balance} USDC`);
+    return balance;
+  } catch (error) {
+    console.error('Error checking child wallet balance:', error);
+    return 0;
+  }
+}
+
+// Helper: Transfer USDC from child wallet to external address
+async function transferUSDCFromChild(childWalletId, toAddress, amount) {
+  const client = await ensureCircleSDKReady();
+
+  try {
+    console.log(`Initiating USDC transfer from child: ${amount} USDC from ${childWalletId} to ${toAddress}`);
+    
+    // Get available tokens on Ethereum Sepolia
+    const tokensResponse = await client.listTokens({
+      blockchain: 'ETH-SEPOLIA'
+    });
+
+    const usdcToken = tokensResponse.data?.tokens?.find(token => 
+      token.symbol === 'USDC' || token.name.toLowerCase().includes('usdc')
+    );
+
+    if (!usdcToken) {
+      throw new Error('USDC token not found on Ethereum Sepolia');
+    }
+
+    console.log('Found USDC token:', usdcToken.id);
+
+    // Create transfer transaction from child wallet
+    const transactionResponse = await client.createTransaction({
+      amounts: [amount.toString()],
+      destinationAddress: toAddress,
+      tokenId: usdcToken.id,
+      walletId: childWalletId,
+      fee: {
+        type: 'level',
+        config: {
+          feeLevel: 'MEDIUM'
+        }
+      }
+    });
+
+    console.log('Child USDC transfer transaction created:', transactionResponse.data?.id);
+    return transactionResponse.data;
+  } catch (error) {
+    console.error('Error transferring USDC from child:', error);
+    throw error;
+  }
+}
+
+// Helper: Check if child can perform transfer (spending limits, etc.)
+function canChildTransfer(child, transferAmount) {
+  // Check if child has sufficient balance
+  if (child.balance < transferAmount) {
+    return {
+      allowed: false,
+      reason: 'Insufficient balance',
+      details: `Child has ${child.balance} USDC, but ${transferAmount} USDC requested`
+    };
+  }
+
+  // Check weekly spending limit
+  const weeklySpent = child.spent || 0;
+  const weeklyLimit = child.weeklyLimit || 0;
+  
+  if (weeklySpent + transferAmount > weeklyLimit) {
+    return {
+      allowed: false,
+      reason: 'Weekly spending limit exceeded',
+      details: `Weekly limit: ${weeklyLimit} USDC, already spent: ${weeklySpent} USDC, requested: ${transferAmount} USDC`
+    };
+  }
+
+  // Check if child account is active
+  if (child.status !== 'connected' && child.status !== 'active') {
+    return {
+      allowed: false,
+      reason: 'Child account is not active',
+      details: `Child account status: ${child.status}`
+    };
+  }
+
+  return {
+    allowed: true,
+    reason: 'Transfer allowed',
+    details: `Child can transfer ${transferAmount} USDC`
+  };
+}
+
 // Home route
 app.get('/', (req, res) => {
   res.send('Zaap Backend API is running with Circle Wallet integration');
+});
+
+app.post('/api/set-delegator', (req, res) => {
+  const { delegator } = req.body;
+  if (!delegator) {
+    return res.status(400).json({ error: 'Missing delegator address' });
+  }
+  // Save or process delegator here
+  return res.status(200).json({ message: 'Delegator set successfully' });
 });
 
 // POST /api/login - User login and parent wallet creation
@@ -860,6 +988,307 @@ app.put('/api/children/:address', async (req, res) => {
   } catch (err) {
     console.error('Update child error:', err);
     return res.status(500).json({ error: 'Failed to update child' });
+  }
+});
+
+// GET /api/child-balance/:address - Get child Circle wallet balance
+app.get('/api/child-balance/:address', async (req, res) => {
+  try {
+    const { address } = req.params;
+    
+    if (!isValidEthAddress(address)) {
+      return res.status(400).json({ error: 'Invalid child address' });
+    }
+
+    // Load children from local storage
+    const children = loadChildren();
+    const child = children.find(child => 
+      child.address.toLowerCase() === address.toLowerCase()
+    );
+
+    if (!child) {
+      return res.status(404).json({ 
+        error: 'Child not found',
+        message: 'Child account not found'
+      });
+    }
+
+    // Get balance from Circle wallet if available
+    let circleBalance = 0;
+    if (child.circleWalletId && circleClient && entitySecretRegistered) {
+      try {
+        circleBalance = await getChildWalletUSDCBalance(child.circleWalletId);
+      } catch (error) {
+        console.error('Failed to fetch Circle wallet balance:', error);
+      }
+    }
+
+    // Also get balance from blockchain directly
+    const getChildBalance = require('./getChildBalance');
+    let blockchainBalance = 0;
+    if (child.circleWalletAddress) {
+      try {
+        blockchainBalance = await getChildBalance(child.circleWalletAddress);
+      } catch (error) {
+        console.error('Failed to fetch blockchain balance:', error);
+      }
+    }
+
+    // Update child balance in local storage
+    const updatedChild = {
+      ...child,
+      balance: Math.max(circleBalance, blockchainBalance),
+      circleWalletBalance: circleBalance,
+      blockchainBalance: blockchainBalance,
+      lastBalanceCheck: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    const childIndex = children.findIndex(c => c.address.toLowerCase() === address.toLowerCase());
+    children[childIndex] = updatedChild;
+    saveChildren(children);
+
+    return res.json({
+      success: true,
+      child: updatedChild,
+      balances: {
+        current: updatedChild.balance,
+        circle: circleBalance,
+        blockchain: blockchainBalance
+      }
+    });
+
+  } catch (err) {
+    console.error('Get child balance error:', err);
+    return res.status(500).json({ 
+      error: 'Failed to get child balance', 
+      details: err.message 
+    });
+  }
+});
+
+// POST /api/child-transfer - Transfer USDC from child to external address
+app.post('/api/child-transfer', async (req, res) => {
+  try {
+    const { childAddress, toAddress, amount, memo } = req.body;
+    
+    console.log('Child transfer request:', { 
+      childAddress, 
+      toAddress, 
+      amount, 
+      memo 
+    });
+
+    // Validate child address
+    if (!isValidEthAddress(childAddress)) {
+      return res.status(400).json({ 
+        error: 'Invalid child address',
+        message: 'Please provide a valid child wallet address'
+      });
+    }
+
+    // Validate recipient address
+    if (!isValidEthAddress(toAddress)) {
+      return res.status(400).json({ 
+        error: 'Invalid recipient address',
+        message: 'Please provide a valid recipient wallet address'
+      });
+    }
+
+    // Validate amount
+    const transferAmount = Number(amount);
+    if (isNaN(transferAmount) || transferAmount <= 0) {
+      return res.status(400).json({ 
+        error: 'Invalid transfer amount',
+        message: 'Transfer amount must be a positive number'
+      });
+    }
+
+    // Check if Circle SDK is available
+    if (!circleClient || !entitySecretRegistered) {
+      return res.status(500).json({ 
+        error: 'Circle SDK not available',
+        message: 'Circle integration is not properly configured'
+      });
+    }
+
+    // Load children from local storage
+    const children = loadChildren();
+    const childIndex = children.findIndex(child => 
+      child.address.toLowerCase() === childAddress.toLowerCase()
+    );
+
+    if (childIndex === -1) {
+      return res.status(404).json({ 
+        error: 'Child not found',
+        message: 'Child account not found'
+      });
+    }
+
+    const child = children[childIndex];
+
+    // Check if child has Circle wallet
+    if (!child.circleWalletId) {
+      return res.status(400).json({ 
+        error: 'Child Circle wallet not found',
+        message: 'Child does not have a Circle wallet'
+      });
+    }
+
+    // Get current child wallet balance
+    let currentBalance = 0;
+    try {
+      currentBalance = await getChildWalletUSDCBalance(child.circleWalletId);
+    } catch (balanceError) {
+      console.error('Failed to check child balance:', balanceError);
+      return res.status(500).json({ 
+        error: 'Failed to check child balance',
+        message: 'Could not verify child wallet balance'
+      });
+    }
+
+    // Update child balance in local storage
+    child.balance = currentBalance;
+
+    // Check if child can perform this transfer
+    const transferCheck = canChildTransfer(child, transferAmount);
+    if (!transferCheck.allowed) {
+      return res.status(400).json({
+        error: transferCheck.reason,
+        message: transferCheck.details,
+        childBalance: currentBalance,
+        requestedAmount: transferAmount
+      });
+    }
+
+    // Perform the USDC transfer
+    let transferResult = null;
+    try {
+      transferResult = await transferUSDCFromChild(
+        child.circleWalletId,
+        toAddress,
+        transferAmount
+      );
+
+      console.log('Child USDC transfer completed successfully');
+
+      // Update child's spending and balance in local storage
+      const updatedChild = {
+        ...child,
+        balance: currentBalance - transferAmount,
+        spent: (child.spent || 0) + transferAmount,
+        lastTransferTxId: transferResult.id,
+        lastTransferAmount: transferAmount,
+        lastTransferTo: toAddress,
+        lastTransferMemo: memo || '',
+        lastTransferAt: Date.now(),
+        lastTransferError: null,
+        transferHistory: [
+          ...(child.transferHistory || []),
+          {
+            id: transferResult.id,
+            amount: transferAmount,
+            to: toAddress,
+            memo: memo || '',
+            timestamp: Date.now(),
+            status: 'completed'
+          }
+        ].slice(-10), // Keep only last 10 transfers
+        updatedAt: Date.now()
+      };
+
+      children[childIndex] = updatedChild;
+      saveChildren(children);
+
+      return res.json({
+        success: true,
+        transferTransaction: transferResult,
+        child: updatedChild,
+        message: `Successfully transferred ${transferAmount} USDC to ${toAddress}`
+      });
+
+    } catch (transferError) {
+      console.error('Child USDC transfer failed:', transferError);
+
+      // Update child with transfer error in local storage
+      const updatedChild = {
+        ...child,
+        lastTransferError: transferError.message,
+        lastTransferAt: Date.now(),
+        transferHistory: [
+          ...(child.transferHistory || []),
+          {
+            amount: transferAmount,
+            to: toAddress,
+            memo: memo || '',
+            timestamp: Date.now(),
+            status: 'failed',
+            error: transferError.message
+          }
+        ].slice(-10),
+        updatedAt: Date.now()
+      };
+
+      children[childIndex] = updatedChild;
+      saveChildren(children);
+
+      return res.status(500).json({
+        error: 'Transfer failed',
+        message: transferError.message,
+        details: 'USDC transfer from child wallet failed'
+      });
+    }
+
+  } catch (err) {
+    console.error('Child transfer error:', err);
+    return res.status(500).json({ 
+      error: 'Failed to process child transfer', 
+      details: err.message 
+    });
+  }
+});
+
+// GET /api/child-transfer-history/:address - Get child transfer history
+app.get('/api/child-transfer-history/:address', async (req, res) => {
+  try {
+    const { address } = req.params;
+    
+    if (!isValidEthAddress(address)) {
+      return res.status(400).json({ error: 'Invalid child address' });
+    }
+
+    // Load children from local storage
+    const children = loadChildren();
+    const child = children.find(child => 
+      child.address.toLowerCase() === address.toLowerCase()
+    );
+
+    if (!child) {
+      return res.status(404).json({ 
+        error: 'Child not found',
+        message: 'Child account not found'
+      });
+    }
+
+    const transferHistory = child.transferHistory || [];
+    
+    return res.json({
+      success: true,
+      childAddress: child.address,
+      alias: child.alias,
+      transferHistory: transferHistory.sort((a, b) => b.timestamp - a.timestamp),
+      totalTransfers: transferHistory.length,
+      totalSpent: child.spent || 0,
+      weeklyLimit: child.weeklyLimit || 0,
+      remainingWeeklyLimit: Math.max(0, (child.weeklyLimit || 0) - (child.spent || 0))
+    });
+
+  } catch (err) {
+    console.error('Get child transfer history error:', err);
+    return res.status(500).json({ 
+      error: 'Failed to get child transfer history', 
+      details: err.message 
+    });
   }
 });
 
