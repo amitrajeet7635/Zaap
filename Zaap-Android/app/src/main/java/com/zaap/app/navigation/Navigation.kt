@@ -35,7 +35,7 @@ fun Navigation(
 
     LaunchedEffect(Unit) {
         val isLoggedIn = UserSessionManager.isLoggedIn(context)
-        startDestination = if (isLoggedIn) "ParentConnect" else "Login"
+        startDestination = if (isLoggedIn) "Home" else "Login"
     }
 
     startDestination?.let {
@@ -76,7 +76,7 @@ fun Navigation(
             }
 
             composable("ConnectToParentQRScan") {
-                ConnectToParentQRScan()
+                ConnectToParentQRScan(navHostController = navHostController)
             }
 
             composable("Rewards") {

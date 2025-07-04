@@ -54,6 +54,7 @@ class ConnectToParentViewModel @Inject constructor(
                     alias,
                     timestamp
                 )
+                println(success)
                 _connectStatus.value = success
                 if (!success) {
                     _error.value = "Failed to connect child"
