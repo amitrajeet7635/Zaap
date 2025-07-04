@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BrowserProvider } from 'ethers';
 import Header from '../components/Header'
 import Card from '../components/Card'
@@ -38,11 +38,42 @@ interface ParentWallet {
   walletSetId: string;
   delegatorAddress: string;
   balance: number;
+  totalSpent?: number;
   createdAt: number;
 }
 
 interface ParentalDashboardProps {
   onNavigateBack: () => void
+}
+
+// Animated count-up hook
+function useCountUp(target: number, duration = 1000) {
+  const [value, setValue] = useState(0);
+  const raf = useRef<number | null>(null);
+  useEffect(() => {
+    let start: number | null = null;
+    const animate = (timestamp: number) => {
+      if (!start) start = timestamp;
+      const progress = Math.min((timestamp - start) / duration, 1);
+      setValue(Number((progress * target).toFixed(2)));
+      if (progress < 1) raf.current = requestAnimationFrame(animate);
+      else setValue(Number(target.toFixed(2)));
+    };
+    raf.current = requestAnimationFrame(animate);
+    return () => { if (raf.current) cancelAnimationFrame(raf.current); };
+  }, [target, duration]);
+  return value;
+}
+
+// Add Activity type
+interface Activity {
+  id: string;
+  type: 'child_added' | 'status_changed' | 'funds_added' | 'weekly_limit_changed';
+  childName?: string;
+  childId?: string;
+  details?: string;
+  timestamp: number;
+  icon?: string;
 }
 
 export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardProps) {
@@ -61,6 +92,9 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
   const [qrAlias, setQRAlias] = useState('');
   const [loading, setLoading] = useState(false);
   const [qrTestResult, setQrTestResult] = useState<string | null>(null);
+  const [showQuickstart, setShowQuickstart] = useState(true);
+  const [qrError, setQRError] = useState<string | null>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
 
   // Safe wrapper to ensure children is always an array
   const safeChildren = Array.isArray(children) ? children : [];
@@ -154,6 +188,18 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     fetchChildren();
   }, []);
     
+  // Add activity helper
+  const addActivity = (activity: Omit<Activity, 'id' | 'timestamp'>) => {
+    setActivities(prev => [
+      {
+        ...activity,
+        id: Math.random().toString(36).slice(2),
+        timestamp: Date.now(),
+      },
+      ...prev.slice(0, 19) // keep only last 20
+    ]);
+  };
+
   // Update child alias/weeklyLimit/status
   const handleUpdateChild = async (address: string, updates: Partial<Child>) => {
     try {
@@ -163,6 +209,27 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
       });
       if (updated.success) {
         setChildren(prev => prev.map(c => (c.address === address || c.id === address) ? { ...c, ...updated.child } : c));
+        if (updates.status) {
+          addActivity({
+            type: 'status_changed',
+            childName: updated.child.alias || updated.child.name || address,
+            childId: address,
+            details: `Status changed to ${updates.status}`,
+            icon: updates.status === 'active' ? '🟢' : '🔴',
+          });
+        }
+        if (typeof updates.weeklyLimit === 'number') {
+          addActivity({
+            type: 'weekly_limit_changed',
+            childName: updated.child.alias || updated.child.name || address,
+            childId: address,
+            details: `Weekly limit set to ${updates.weeklyLimit} USDC`,
+            icon: '📅',
+          });
+        }
+        if (updates.alias) {
+          // Optionally track alias changes
+        }
       }
     } catch (error) {
       console.error('Failed to update child:', error);
@@ -183,12 +250,6 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
       return;
     }
 
-    console.log('Generating QR with:', { 
-      delegator: walletAddress, 
-      maxAmount: amount, 
-      alias: qrAlias || undefined 
-    });
-
     setLoading(true);
     try {
       const { generateQR } = await import('../utils/api');
@@ -198,14 +259,16 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
         setQRData(data.qrData);
         setShowQRModal(true);
         setQrTestResult(null);
+        setQRError(null);
       } else {
         const errorMessage = data.error || data.message || 'Unknown error';
-        console.error('QR generation failed:', data);
-        alert('Failed to generate QR: ' + errorMessage);
+        setQRError(errorMessage);
+        setShowQRModal(false);
       }
-    } catch (error) {
-      console.error('QR generation error:', error);
-      alert('Failed to generate QR: Network error');
+    } catch (error: any) {
+      // Show backend error message if available
+      setQRError(error?.message || 'Failed to generate QR: Network error');
+      setShowQRModal(false);
     } finally {
       setLoading(false);
     }
@@ -245,6 +308,13 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
       });
       if (updated.success) {
         setChildren(prev => prev.map(c => (c.id === address || c.address === address) ? { ...c, ...updated.child } : c));
+        addActivity({
+          type: 'funds_added',
+          childName: updated.child.alias || updated.child.name || address,
+          childId: address,
+          details: `Added ${amount} USDC`,
+          icon: '💸',
+        });
       } else {
         alert('Failed to add funds');
       }
@@ -253,6 +323,25 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
       alert('Failed to add funds');
     }
   };
+
+  // Add activity when child is added via QR (simulate for now)
+  useEffect(() => {
+    if (safeChildren.length > 0) {
+      // Only add activity if not already present for this child
+      safeChildren.forEach(child => {
+        if (!activities.some(a => a.type === 'child_added' && a.childId === (child.id || child.address))) {
+          addActivity({
+            type: 'child_added',
+            childName: child.alias || child.name || child.id || child.address,
+            childId: child.id || child.address,
+            details: 'Child account added',
+            icon: '👦🏻',
+          });
+        }
+      });
+    }
+    // eslint-disable-next-line
+  }, [safeChildren]);
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -282,8 +371,19 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
     }
   }
 
-  const totalBalance = safeChildren.reduce((sum, child) => sum + (child.balance || 0), 0)
-  const totalSpent = safeChildren.reduce((sum, child) => sum + (child.spent || 0), 0)
+  const getActivityIcon = (type: Activity['type'], icon?: string) => {
+    if (icon) return icon;
+    switch (type) {
+      case 'child_added': return '👦🏻';
+      case 'status_changed': return '🔄';
+      case 'funds_added': return '💸';
+      case 'weekly_limit_changed': return '📅';
+      default: return '📝';
+    }
+  };
+
+  const animatedBalance = useCountUp(parentWallet ? Number(parentWallet.balance) : 0);
+  const animatedSpent = useCountUp(parentWallet ? Number(parentWallet.totalSpent || 0) : 0);
 
   return (
     <div className="min-h-screen bg-black font-inter">
@@ -331,26 +431,64 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="space-y-8">
+            {/* Quickstart Guide for Funding Parent Wallet */}
+            {parentWallet && Number(usdcBalance) === 0 && showQuickstart && (
+              <Card className="bg-gradient-to-br from-yellow-400/10 to-yellow-600/20 border-yellow-400/30 mb-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-yellow-400 mb-2 flex items-center">
+                      <svg className="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                        <path d="M7 9h2v6H7zm4 0h2v6h-2zm4 0h2v6h-2z"/>
+                      </svg>
+                      Quickstart: Fund Your Parent Wallet
+                    </h3>
+                    <ol className="list-decimal list-inside text-gray-200 text-base space-y-1 mb-2">
+                      <li>
+                        <span>Copy your parent wallet address: </span>
+                        <span className="bg-gray-800 px-2 py-1 rounded text-yellow-400 select-all cursor-pointer" onClick={() => {navigator.clipboard.writeText(parentWallet.address);}}>{parentWallet.address}</span>
+                      </li>
+                      <li>Go to <a href="https://faucet.circle.com/" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">https://faucet.circle.com/</a></li>
+                      <li>Select <span className="font-semibold text-yellow-400">Ethereum Sepolia</span> network</li>
+                      <li>Paste your wallet address and click <span className="font-semibold text-yellow-400">Request Funds</span></li>
+                    </ol>
+                    <p className="text-green-400 text-sm mt-2">Your funds will appear in the portal in 2-3 minutes.</p>
+                  </div>
+                  <button onClick={() => setShowQuickstart(false)} className="ml-4 text-gray-400 hover:text-yellow-400 text-xl" title="Dismiss">×</button>
+                </div>
+              </Card>
+            )}
+
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card className="text-center bg-gradient-to-br from-green-400/10 to-green-600/20 border-green-400/30">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Card className="text-center bg-gradient-to-br from-green-400/10 to-green-600/20 border-green-400/30 card-animate hover:scale-105 hover:shadow-green-400/40 transition-transform duration-300">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-bounce-slow">
                   <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-green-400">{totalBalance.toFixed(2)} USDC</h3>
-                <p className="text-gray-300 text-sm">Total Balance</p>
+                <h3 className="text-2xl font-bold text-green-400 flex items-center justify-center">
+                  {animatedBalance.toFixed(2)} USDC
+                </h3>
+                <div className="w-3/4 mx-auto mt-2 h-2 bg-green-900 rounded-full overflow-hidden">
+                  <div className="h-2 bg-green-400 transition-all duration-700" style={{ width: `${Math.min(100, (animatedBalance / 1000) * 100)}%` }} />
+                </div>
+                <p className="text-gray-300 text-sm mt-2">Balance</p>
               </Card>
 
-              <Card className="text-center bg-gradient-to-br from-yellow-400/10 to-yellow-600/20 border-yellow-400/30">
-                <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Card className="text-center bg-gradient-to-br from-yellow-400/10 to-yellow-600/20 border-yellow-400/30 card-animate hover:scale-105 hover:shadow-yellow-400/40 transition-transform duration-300">
+                <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
                   <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M7 4V2C7 1.45 7.45 1 8 1H16C16.55 1 17 1.45 17 2V4H20V6H19V19C19 20.1 18.1 21 17 21H7C5.9 21 5 20.1 5 19V6H4V4H7Z"/>
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-yellow-400">{totalSpent.toFixed(2)} USDC</h3>
-                <p className="text-gray-300 text-sm">Total Spent</p>
+                <h3 className="text-2xl font-bold text-yellow-400 flex items-center justify-center">
+                  {animatedSpent.toFixed(2)} USDC
+                </h3>
+                <div className="w-3/4 mx-auto mt-2 h-2 bg-yellow-900 rounded-full overflow-hidden">
+                  <div className="h-2 bg-yellow-400 transition-all duration-700" style={{ width: `${Math.min(100, (animatedSpent / 1000) * 100)}%` }} />
+                </div>
+                <p className="text-gray-300 text-sm mt-2">Total Spent</p>
               </Card>
 
               <Card className="text-center bg-gradient-to-br from-blue-400/10 to-blue-600/20 border-blue-400/30">
@@ -383,18 +521,22 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                 Recent Activity
               </h3>
               <div className="space-y-4">
-                {transactions.slice(0, 5).map(transaction => (
-                  <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-800/50 rounded-xl hover:bg-gray-800/80 transition-all duration-300">
+                {activities.length === 0 && (
+                  <div className="text-gray-400 text-center py-4">No recent activity yet.</div>
+                )}
+                {activities.slice(0, 8).map(activity => (
+                  <div key={activity.id} className="flex items-center justify-between p-4 bg-gray-800/50 rounded-xl hover:bg-gradient-to-r hover:from-yellow-900/40 hover:to-yellow-700/20 transition-all duration-300 group shadow-md card-animate">
                     <div className="flex items-center space-x-4">
-                      <div className="text-2xl">{getCategoryIcon(transaction.category)}</div>
+                      <div className="text-2xl group-hover:scale-125 transition-transform duration-300 animate-bounce-slow">
+                        {getActivityIcon(activity.type, activity.icon)}
+                      </div>
                       <div>
-                        <p className="font-medium text-white">{transaction.merchant}</p>
-                        <p className="text-sm text-gray-400">{transaction.childName} • {transaction.category}</p>
+                        <p className="font-medium text-white">{activity.childName || 'Parent'}</p>
+                        <p className="text-sm text-gray-400">{activity.details}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-white">{transaction.amount.toFixed(2)} USDC</p>
-                      <p className={`text-sm ${getStatusColor(transaction.status)}`}>{transaction.status}</p>
+                    <div className="text-right text-xs text-gray-400">
+                      {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
                 ))}
@@ -530,9 +672,9 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
             
             <div className="space-y-3">
               {transactions.map(transaction => (
-                <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-800/30 rounded-xl hover:bg-gray-800/60 transition-all duration-300 group">
+                <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-800/30 rounded-xl hover:bg-gradient-to-r hover:from-yellow-900/40 hover:to-yellow-700/20 transition-all duration-300 group shadow-md card-animate">
                   <div className="flex items-center space-x-4">
-                    <div className="text-2xl group-hover:scale-110 transition-transform duration-300">
+                    <div className="text-2xl group-hover:scale-125 transition-transform duration-300 animate-bounce-slow">
                       {getCategoryIcon(transaction.category)}
                     </div>
                     <div>
@@ -543,9 +685,9 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
                   <div className="flex items-center space-x-4">
                     <div className="text-right">
                       <p className="font-bold text-white">{transaction.amount.toFixed(2)} USDC</p>
-                      <p className={`text-sm ${getStatusColor(transaction.status)}`}>
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(transaction.status)} bg-opacity-20 bg-current transition-colors duration-300`}>
                         {transaction.status}
-                      </p>
+                      </span>
                     </div>
                     <button className="text-gray-400 hover:text-yellow-400 transition-colors duration-300">
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -672,6 +814,18 @@ export default function ParentalDashboard({ onNavigateBack }: ParentalDashboardP
             >
               Close
             </Button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Error Modal Popup */}
+      {qrError && (
+        <Modal onClose={() => setQRError(null)}>
+          <div className="flex flex-col items-center text-center p-4">
+            <div className="text-3xl mb-2 text-red-400">❌</div>
+            <h2 className="text-xl font-bold mb-2 text-red-400">Error</h2>
+            <p className="text-gray-200 mb-4">{qrError}</p>
+            <Button onClick={() => setQRError(null)} className="bg-red-500 text-white px-6 py-2 rounded-xl">Close</Button>
           </div>
         </Modal>
       )}

@@ -23,10 +23,16 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 const CHILDREN_FILE = path.join(DATA_DIR, 'children.json');
+const PARENT_WALLETS_FILE = path.join(DATA_DIR, 'parent_wallets.json');
+const ACTIVITY_LOG_FILE = path.join(DATA_DIR, 'activity_log.json');
 
-// Initialize file if not present
+// Initialize files if not present
 if (!fs.existsSync(CHILDREN_FILE)) {
   fs.writeFileSync(CHILDREN_FILE, JSON.stringify([]));
+}
+
+if (!fs.existsSync(PARENT_WALLETS_FILE)) {
+  fs.writeFileSync(PARENT_WALLETS_FILE, JSON.stringify({}));
 }
 
 function loadChildren() {
@@ -47,6 +53,62 @@ function saveChildren(children) {
     console.error('Error saving children data:', error);
     return false;
   }
+}
+
+function loadParentWallets() {
+  try {
+    const data = fs.readFileSync(PARENT_WALLETS_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('Error loading parent wallets data:', error);
+    return {};
+  }
+}
+
+function saveParentWallets(parentWallets) {
+  try {
+    fs.writeFileSync(PARENT_WALLETS_FILE, JSON.stringify(parentWallets, null, 2));
+    return true;
+  } catch (error) {
+    console.error('Error saving parent wallets data:', error);
+    return false;
+  }
+}
+
+function loadActivityLog() {
+  try {
+    const data = fs.readFileSync(ACTIVITY_LOG_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('Error loading activity log:', error);
+    return [];
+  }
+}
+
+function saveActivityLog(log) {
+  try {
+    fs.writeFileSync(ACTIVITY_LOG_FILE, JSON.stringify(log, null, 2));
+    return true;
+  } catch (error) {
+    console.error('Error saving activity log:', error);
+    return false;
+  }
+}
+
+function logActivity({ delegator, type, details }) {
+  if (!delegator) return;
+  const log = loadActivityLog();
+  log.unshift({
+    id: generateId(),
+    delegator,
+    type, // e.g. 'child_added', 'status_changed', 'funds_added', 'weekly_limit_changed'
+    details,
+    timestamp: Date.now()
+  });
+  // Keep only last 100 activities per delegator
+  const filtered = log.filter(e => e.delegator === delegator).slice(0, 100);
+  const rest = log.filter(e => e.delegator !== delegator);
+  saveActivityLog([...filtered, ...rest]);
 }
 
 function generateId() {
@@ -102,8 +164,8 @@ initializeCircleSDK().catch(error => {
   console.error('Failed to initialize Circle SDK:', error.message);
 });
 
-// Global state - Store parent wallets by delegator address
-let parentWallets = {}; // { delegatorAddress: { walletId, address, walletSetId, balance } }
+// Global state - Store parent wallets by delegator address (loaded from persistent storage)
+let parentWallets = loadParentWallets(); // { delegatorAddress: { walletId, address, walletSetId, balance } }
 
 // Helper: Ensure Circle SDK is initialized and ready
 async function ensureCircleSDKReady() {
@@ -136,9 +198,9 @@ async function getOrCreateParentWallet(delegatorAddress) {
   try {
     console.log('Creating new parent wallet for delegator:', delegatorAddress);
     
-    // Create wallet set for parent
+    // Create wallet set for parent with a deterministic name
     const walletSetResponse = await client.createWalletSet({
-      name: `Parent_${delegatorAddress.slice(0, 10)}_${Date.now()}`
+      name: `Parent_${delegatorAddress.slice(0, 10)}_${delegatorAddress.slice(-10)}`
     });
 
     if (!walletSetResponse.data?.walletSet?.id) {
@@ -165,11 +227,15 @@ async function getOrCreateParentWallet(delegatorAddress) {
       walletSetId: walletSetResponse.data.walletSet.id,
       delegatorAddress: delegatorAddress,
       balance: 0,
+      totalSpent: 0, // Track total spent
       createdAt: Date.now()
     };
 
     // Store the parent wallet for future use
     parentWallets[delegatorAddress] = parentWalletData;
+    
+    // Persist to storage
+    saveParentWallets(parentWallets);
     
     return parentWalletData;
   } catch (error) {
@@ -454,6 +520,9 @@ app.post('/api/login', async (req, res) => {
         parentWalletData.balance = balance;
         parentWallets[delegatorAddress].balance = balance;
         
+        // Persist the updated balance
+        saveParentWallets(parentWallets);
+        
         console.log('Parent wallet ready:', parentWalletData.address);
       } catch (error) {
         console.error('Failed to create/get parent wallet:', error);
@@ -506,7 +575,8 @@ app.get('/api/parent-wallet/:delegator', async (req, res) => {
       success: true,
       parentWallet: {
         ...parentWalletData,
-        balance: currentBalance
+        balance: currentBalance,
+        totalSpent: parentWalletData.totalSpent || 0 // Always expose totalSpent
       }
     });
   } catch (err) {
@@ -714,6 +784,12 @@ app.post('/api/connect-child', async (req, res) => {
       
       children[existingChildIndex] = updatedChild;
       saveChildren(children);
+      // Log activity: child status changed
+      logActivity({
+        delegator,
+        type: 'status_changed',
+        details: { childAddress: finalChildAddress, alias: alias || '', status: 'connected' }
+      });
       
       console.log('Child updated successfully');
       return res.json({ 
@@ -748,6 +824,12 @@ app.post('/api/connect-child', async (req, res) => {
     
     children.push(childDoc);
     saveChildren(children);
+    // Log activity: child added
+    logActivity({
+      delegator,
+      type: 'child_added',
+      details: { childAddress: finalChildAddress, alias: alias || '', maxAmount: max, weeklyLimit }
+    });
     
     console.log('Child connected successfully with Circle wallet');
     return res.json({ 
@@ -863,6 +945,16 @@ app.post('/api/transfer-usdc', async (req, res) => {
       
       console.log('USDC transfer completed successfully');
       
+      // Update parent's totalSpent
+      if (!parentWallets[delegator].totalSpent) parentWallets[delegator].totalSpent = 0;
+      parentWallets[delegator].totalSpent += transferAmount;
+      saveParentWallets(parentWallets);
+      // Log activity: funds added to child
+      logActivity({
+        delegator,
+        type: 'funds_added',
+        details: { childAddress: child.address, alias: child.alias || '', amount: transferAmount }
+      });
       // Update child's transfer status in local storage
       const updatedChild = {
         ...child,
@@ -915,16 +1007,17 @@ app.post('/api/transfer-usdc', async (req, res) => {
   }
 });
 
-// GET /api/children - List all children
+// GET /api/children - List all children for a delegator
 app.get('/api/children', async (req, res) => {
   try {
-    console.log('Fetching children from local storage...');
-    
+    const { delegator } = req.query;
+    if (!isValidEthAddress(delegator)) {
+      return res.status(400).json({ error: 'Missing or invalid delegator address' });
+    }
     const children = loadChildren();
-    console.log('Children fetched successfully:', children.length, 'documents');
-    
-    // Transform documents to ensure consistent format
-    const formattedChildren = children.map(doc => ({
+    // Only return children for this delegator
+    const filtered = children.filter(child => child.delegator && child.delegator.toLowerCase() === delegator.toLowerCase());
+    const formattedChildren = filtered.map(doc => ({
       id: doc.id,
       address: doc.address,
       alias: doc.alias || '',
@@ -948,7 +1041,6 @@ app.get('/api/children', async (req, res) => {
       lastTransferAt: doc.lastTransferAt,
       lastTransferError: doc.lastTransferError
     }));
-    
     return res.status(200).json(formattedChildren);
   } catch (err) {
     console.error('List children error:', err);
@@ -956,34 +1048,37 @@ app.get('/api/children', async (req, res) => {
   }
 });
 
-// PUT /api/children/:address - Update child account
+// PUT /api/children/:address - Update child account (delegator required)
 app.put('/api/children/:address', async (req, res) => {
   try {
     const { address } = req.params;
-    const updates = req.body;
-    
-    if (!isValidEthAddress(address)) {
-      return res.status(400).json({ error: 'Invalid child address' });
+    const { delegator, ...updates } = req.body;
+    if (!isValidEthAddress(address) || !isValidEthAddress(delegator)) {
+      return res.status(400).json({ error: 'Invalid child or delegator address' });
     }
-    
     const children = loadChildren();
-    const childIndex = children.findIndex(child => 
-      child.address.toLowerCase() === address.toLowerCase()
+    const childIndex = children.findIndex(child =>
+      child.address.toLowerCase() === address.toLowerCase() &&
+      child.delegator && child.delegator.toLowerCase() === delegator.toLowerCase()
     );
-    
     if (childIndex === -1) {
-      return res.status(404).json({ error: 'Child not found' });
+      return res.status(404).json({ error: 'Child not found for this delegator' });
     }
-    
     const updatedChild = {
       ...children[childIndex],
       ...updates,
       updatedAt: Date.now()
     };
-    
+    // Log activity: weekly limit changed (if applicable)
+    if (typeof updates.weeklyLimit !== 'undefined' && updates.weeklyLimit !== children[childIndex].weeklyLimit) {
+      logActivity({
+        delegator,
+        type: 'weekly_limit_changed',
+        details: { childAddress: address, alias: updatedChild.alias || '', newWeeklyLimit: updates.weeklyLimit, oldWeeklyLimit: children[childIndex].weeklyLimit }
+      });
+    }
     children[childIndex] = updatedChild;
     saveChildren(children);
-    
     return res.json({ success: true, child: updatedChild });
   } catch (err) {
     console.error('Update child error:', err);
@@ -991,25 +1086,24 @@ app.put('/api/children/:address', async (req, res) => {
   }
 });
 
-// GET /api/child-balance/:address - Get child Circle wallet balance
+// GET /api/child-balance/:address - Get child Circle wallet balance (delegator required)
 app.get('/api/child-balance/:address', async (req, res) => {
   try {
     const { address } = req.params;
-    
-    if (!isValidEthAddress(address)) {
-      return res.status(400).json({ error: 'Invalid child address' });
+    const { delegator } = req.query;
+    if (!isValidEthAddress(address) || !isValidEthAddress(delegator)) {
+      return res.status(400).json({ error: 'Invalid child or delegator address' });
     }
-
     // Load children from local storage
     const children = loadChildren();
-    const child = children.find(child => 
-      child.address.toLowerCase() === address.toLowerCase()
+    const child = children.find(child =>
+      child.address.toLowerCase() === address.toLowerCase() &&
+      child.delegator && child.delegator.toLowerCase() === delegator.toLowerCase()
     );
-
     if (!child) {
-      return res.status(404).json({ 
-        error: 'Child not found',
-        message: 'Child account not found'
+      return res.status(404).json({
+        error: 'Child not found for this delegator',
+        message: 'Child account not found for this parent'
       });
     }
 
@@ -1290,6 +1384,19 @@ app.get('/api/child-transfer-history/:address', async (req, res) => {
       details: err.message 
     });
   }
+});
+
+// API: Get activity feed for a parent
+app.get('/api/activity-feed', (req, res) => {
+  const { delegator } = req.query;
+  if (!isValidEthAddress(delegator)) {
+    return res.status(400).json({ error: 'Invalid delegator address' });
+  }
+  const log = loadActivityLog();
+  const feed = log.filter(e => e.delegator.toLowerCase() === delegator.toLowerCase())
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 30);
+  res.json({ success: true, feed });
 });
 
 // GET /api/debug - Debug endpoint
