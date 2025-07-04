@@ -31,9 +31,11 @@ Create DeFi tools that boost the utility of card-linked assets. Think allocation
 **Also integrated Metamask DTK and Circle Wallets *(Bonus tracks)***
 
 ## Demo & Deliverables
-- **Demo Video (Click to watch the youtube video):** - <br>
+- **Demo Video (Click below to watch the youtube video):** - <br>
+<a href="https://youtu.be/sL7EbgwUi9M" target="_blank">
+  <img src="https://github.com/user-attachments/assets/4f2100be-4dbf-4d3b-9e17-e479d4de28af" alt="Build Showcase" width="400">
+</a>
 
-[![Watch the video](https://img.youtube.com/vi/sL7EbgwUi9M/0.jpg)](https://www.youtube.com/watch?v=sL7EbgwUi9M&pp=ygUVemFhcCBubyBjYXNoIG5vIGNhcmRz)
 - **Pitch Deck / PPT Link:** https://www.loom.com/share/c6d53a0bf8c34ac182cd7467cb829208?sid=c67c0044-8307-4b74-a7ab-6b784b6ad043 
 
 ---
