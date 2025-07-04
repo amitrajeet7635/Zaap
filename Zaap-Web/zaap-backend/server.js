@@ -11,24 +11,24 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// Local storage setup
-const DATA_DIR = path.join(__dirname, 'data');
-const CHILDREN_FILE = path.join(DATA_DIR, 'children.json');
-
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  const DATA_DIR = path.join('/tmp', 'data');
-  if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR);
-  }
+// Use a writable directory — fallback to /tmp for serverless environments
+let DATA_DIR = path.join(__dirname, 'data');
+if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+  DATA_DIR = path.join('/tmp', 'data');
 }
 
-// Initialize children data file if it doesn't exist
+// Create the directory if it doesn't exist
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+const CHILDREN_FILE = path.join(DATA_DIR, 'children.json');
+
+// Initialize file if not present
 if (!fs.existsSync(CHILDREN_FILE)) {
   fs.writeFileSync(CHILDREN_FILE, JSON.stringify([]));
 }
 
-// Helper functions for local storage
 function loadChildren() {
   try {
     const data = fs.readFileSync(CHILDREN_FILE, 'utf8');
