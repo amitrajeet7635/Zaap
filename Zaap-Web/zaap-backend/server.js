@@ -17,7 +17,10 @@ const CHILDREN_FILE = path.join(DATA_DIR, 'children.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const DATA_DIR = path.join('/tmp', 'data');
+  if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR);
+  }
 }
 
 // Initialize children data file if it doesn't exist
