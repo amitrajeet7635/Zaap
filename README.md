@@ -20,33 +20,6 @@
 <p align="center">
   <img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" alt="Animated Line" width="90%" />
 </p>
-
-<table align="left">
-  <tr>
-    <td><img src="https://github.com/Anmol-Baranwal/Cool-GIFs-For-GitHub/assets/74038190/7bb1e704-6026-48f9-8435-2f4d40101348" width="50"></td>
-    <td><h4>Built by the Zaap Squad</h4></td>
-  </tr>
-  <tr>
-    <td colspan="2" align="center">
-      <table>
-        <tr>
-          <td align="center">
-            <a href="https://github.com/amanna13">
-              <img src="https://github.com/amanna13.png" width="80" height="80"><br>
-              <sub><b>@amanna13</b></sub>
-            </a>
-          </td>
-          <td align="center">
-            <a href="https://github.com/amitrajeet7635">
-              <img src="https://github.com/amitrajeet7635.png" width="80" height="80"><br>
-              <sub><b>@amitrajeet7635</b></sub>
-            </a>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>
 </div>
 
 
@@ -197,6 +170,33 @@ Zaap isn’t just a product — it’s a movement toward redefining financial fr
 **No cash. No cards. Just Zaap.**
 
 ---
+
+<table align="left">
+  <tr>
+    <td><img src="https://github.com/Anmol-Baranwal/Cool-GIFs-For-GitHub/assets/74038190/7bb1e704-6026-48f9-8435-2f4d40101348" width="50"></td>
+    <td><h4>Built by the Zaap Squad</h4></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
+      <table>
+        <tr>
+          <td align="center">
+            <a href="https://github.com/amanna13">
+              <img src="https://github.com/amanna13.png" width="80" height="80"><br>
+              <sub><b>@amanna13</b></sub>
+            </a>
+          </td>
+          <td align="center">
+            <a href="https://github.com/amitrajeet7635">
+              <img src="https://github.com/amitrajeet7635.png" width="80" height="80"><br>
+              <sub><b>@amitrajeet7635</b></sub>
+            </a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
 
 
 
