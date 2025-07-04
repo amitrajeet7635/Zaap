@@ -87,7 +87,7 @@ We believe financial literacy and independence should start early, and ZAAP offe
 - SDK's and Toolkits: Circle SDK, Circle Wallet, Metamask SDK, Metamask Delegation Toolkits
 - Hosting: Vercel
 
-### Sponsor Technologies Used (if any):
+### Sponsor Technologies Used:
 - [✅] **Circle:**  We adopted Circle’s developer-centric programmable wallets and SDKs to enable seamless, secure transfers — from parent to child wallets and further from child to external recipients. This gave us custody control, compliance-ready flows, and scalable wallet orchestration.
 ---
 
