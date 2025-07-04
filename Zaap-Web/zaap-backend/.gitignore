@@ -25,5 +25,3 @@ dist-ssr
 
 .env
 
-# Local data storage
-data/

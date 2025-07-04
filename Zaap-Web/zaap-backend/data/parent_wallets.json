@@ -1,0 +1,18 @@
+{
+  "0xf2fb8f37f4fa8c3044c1ec6d4e486efae0a7cbba": {
+    "walletId": "8054426f-1652-5419-b2ff-729299cd7ab5",
+    "address": "0x55d4b27e5b640a1dd3349734904a0edad47b5553",
+    "walletSetId": "3eac4bdb-76a6-54c9-b795-3263e4633a44",
+    "delegatorAddress": "0xf2fb8f37f4fa8c3044c1ec6d4e486efae0a7cbba",
+    "balance": 20,
+    "createdAt": 1751648985609
+  },
+  "0xe8590cd4c4a8a5ef7384560b929c44d7d0d0cb34": {
+    "walletId": "0f2196b0-513b-54bb-9e59-611897aea3c7",
+    "address": "0x2f08b25350d9dde45a1cb9d58a2065568f93b421",
+    "walletSetId": "3450ae36-67b4-565b-9024-30ebc0b953d7",
+    "delegatorAddress": "0xe8590cd4c4a8a5ef7384560b929c44d7d0d0cb34",
+    "balance": 10,
+    "createdAt": 1751650407309
+  }
+}

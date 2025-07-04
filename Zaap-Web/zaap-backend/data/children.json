@@ -1,0 +1,21 @@
+[
+  {
+    "id": "mco4wx2hjkpbecbltgb",
+    "address": "0xb1137dec00a831bfda4fa48195ff68f8560da3ba",
+    "delegator": "0xf2fb8f37f4fa8c3044c1ec6d4e486efae0a7cbba",
+    "token": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    "maxAmount": 9,
+    "weeklyLimit": 1,
+    "alias": "Amit",
+    "avatar": "",
+    "status": "connected",
+    "connectedAt": 1751592011363,
+    "balance": 9,
+    "spent": 0,
+    "totalUSDC": 9,
+    "createdAt": 1751592440681,
+    "circleWalletId": "24cb5d06-ff22-535c-9ea1-bc5c7871c9d0",
+    "circleWalletAddress": "0xe9f269d25da70a1ece9837d0acee3a1e756fb674",
+    "transferStatus": "pending"
+  }
+]
